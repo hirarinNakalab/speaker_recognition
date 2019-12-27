@@ -116,11 +116,11 @@ class Region:
         for i, reg in enumerate(range(self.reg_num)):
             self.regions[i].load(i)
 
-    def foward(self, x, learn=True):
+    def forward(self, x, learn=True):
         outputs = []
         for i, reg in enumerate(range(self.reg_num)):
-            x, pred = self.regions[i].predict(x, learn)
-            outputs.append((x, pred))
+            act, x = self.regions[i].predict(x, learn)
+            outputs.append((act, x))
         return outputs
 
     def anomaly(self):

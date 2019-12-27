@@ -1,4 +1,3 @@
-import numpy as np
 import toolz as tz
 from toolz import curried as c
 
@@ -12,7 +11,7 @@ def get_encoding(sdr, shape):
     return encoding
 
 @tz.curry
-def getDenseArray(val, enc, width):
+def get_dense_array(val, enc, width):
     return tz.pipe(val,
                    c.map(lambda x: x*100),
                    c.map(enc.encode),

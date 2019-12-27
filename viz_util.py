@@ -14,15 +14,17 @@ def counter(func):
         nonlocal is_first, axes
         if is_first:
             is_first = False
-            fig, axes = plt.subplots(3+1, 1)
+            fig, axes = plt.subplots(1, 1+4)
         result = func(*args, axes=axes)
         return result
     return counted
 
 @counter
 def visualizeSDR(title, encoding, sdrs=None, *, axes):
-    title = title[:60] if len(title) > 60 else title
-    titles = ["active columns:region{}".format(i) for i in range(len(sdrs))]
+    title = title[40:] if len(title) > 40 else title
+    fmt = "{} columns:region{}"
+    col_names = ["active", "predictive"]
+    titles = [fmt.format(col_names[i%2], i//2) for i in range(len(sdrs))]
     titles.insert(0, title)
     sdrs.insert(0, encoding)
     for ax, sdr, tit in zip(axes, sdrs, titles):

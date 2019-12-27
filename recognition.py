@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from layers import Region, Layer, createEncoder, createClassifier
-from sdr_util import getDenseArray
+from sdr_util import get_dense_array
 import viz_util
 import param
 
@@ -85,58 +85,62 @@ def show_spectrogram(mel, save=False):
 if __name__ == '__main__':
     data_path = param.input_file
     wav_files = get_wavfile_list(data_path)
+    n_files = len(wav_files)
+    split_idx = int(n_files*0.6)
+    dataset = {'train': wav_files[:split_idx], 'test': wav_files[split_idx:]}
 
     width = 40
     encoder = createEncoder(width=width)
 
     model = Region(
-        Layer(din=(20, width), dout=(20, 20), temporal=True),
-        Layer(din=(20, 20), dout=(10, 10), temporal=False)
+        Layer(din=(20, width), dout=(30, 30)),
+        Layer(din=(30, 30), dout=(20, 20))
     )
     model.compile()
 
     clf = createClassifier()
 
-    speaker_dict = {
-        'm0001': 1,
-        'f0002': 2
-    }
+    speakers = 'm0001 f0002'.split()
+    speakers_dict = {k: v for v, k in enumerate(speakers)}
 
     i = 0
-    for wav_file in wav_files:
-        answer, prediction = [], []
+    for phase in ['train', 'test']:
+        wavs = dataset[phase]
 
-        sig, fs = get_wave_data(wav_file)
-        sig = normalize_sig(sig)
-        mels = mel_spectrogram(sig, fs)
+        for wav in wavs:
+            answer, prediction, anomaly = [], [], []
 
-        for mel in mels.T:
-            encoding = getDenseArray(mel, encoder, width=width)
-            outputs = model.foward(encoding)
-            output = outputs[-1][0]
+            sig, fs = get_wave_data(wav)
+            sig = normalize_sig(sig)
+            mels = mel_spectrogram(sig, fs)
 
-            outputs = list(itertools.chain.from_iterable(outputs))
-            outputs = [output for output in outputs if output is not None]
+            for mel in mels.T:
+                encoding = get_dense_array(mel, encoder, width=width)
+                outputs = model.forward(encoding)
+                output = outputs[-1][0]
+                anomaly.append(model.anomaly())
 
-            viz_util.visualize(i, wav_file, encoding, outputs)
+                outputs = list(itertools.chain.from_iterable(outputs))
+                viz_util.visualize(i, wav, encoding, outputs)
 
-            ans = 0
-            for speaker in speaker_dict.keys():
-                if speaker in wav_file:
-                    ans = speaker_dict[speaker]
+                ans = 0
+                for speaker in speakers_dict.keys():
+                    if speaker in wav:
+                        ans = speakers_dict[speaker]
 
-            if 'test' in wav_file:
-                pred = np.argmax(clf.infer(output))
-                answer.append(ans)
-                prediction.append(pred)
-            else:
-                clf.learn(output, ans)
+                if phase == 'train':
+                    clf.learn(output, ans)
+                elif phase == 'test':
+                    pred = np.argmax(clf.infer(output))
+                    answer.append(ans)
+                    prediction.append(pred)
 
-            i += 1
+                i += 1
 
-        print(wav_file)
+            print(wav)
 
-        if 'test' in wav_file:
-            print('answer:', answer)
-            print('prediction:', prediction)
-            print('accuracy:', np.sum(np.array(answer)==np.array(prediction)))
+            if phase == 'test':
+                print('answer:', answer)
+                print('prediction:', prediction)
+                print('anomaly:', anomaly)
+                print('accuracy:', np.sum(np.array(answer)==np.array(prediction)))

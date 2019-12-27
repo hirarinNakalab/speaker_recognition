@@ -5,7 +5,7 @@ dimension = 2
 # Arguments
 args = {
     "REGION_NUM": 1,
-    "VIZ_COLS": False,
+    "VIZ_COLS": True,
     "DO_LEARNING": True,
     "USE_OLD_MODEL": False,
     "SAVE_MODEL": False,
@@ -61,8 +61,8 @@ parameters = {
         'initialPermanence': 0.21,
         'connectedPermanence': 0.5,
         'maxSegmentsPerCell': 128,
-        'permanenceDecrement': 0.1,
-        'permanenceIncrement': 0.1,
+        'permanenceDecrement': 0.3,
+        'permanenceIncrement': 0.3,
         'predictedSegmentDecrement': 0.0,
     },
 }
@@ -108,10 +108,10 @@ else:
         },
         'tm': {
             'columnDimensions': layer_shape,
-            'activationThreshold': 16,
+            'activationThreshold': 4,
             'cellsPerColumn': 16,
             'maxSynapsesPerSegment': 32,
-            'minThreshold': 12,
+            'minThreshold': 2,
             'maxNewSynapseCount': 20,
         }
     }
