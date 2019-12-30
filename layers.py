@@ -7,7 +7,7 @@ from htm.bindings.sdr import SDR
 import param
 
 
-def createEncoder(width):
+def create_encoder(width):
     setting = param.parameters
     scalarEncoderParams = RDSE_Parameters()
     scalarEncoderParams.size = width
@@ -16,7 +16,7 @@ def createEncoder(width):
     scalarEncoder = RDSE(scalarEncoderParams)
     return scalarEncoder
 
-def createClassifier():
+def create_classifier():
     return Classifier()
 
 class Layer:

@@ -1,10 +1,35 @@
+import os
 import itertools
 import functools
 
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as anime
 
 import param
+
+
+def write_gif_file(features, feature_set, filename):
+    fig = plt.figure()
+    axes, plots = [], []
+    num_axes = len(features) - 1
+    for i in range(num_axes):
+        data = np.zeros_like(feature_set[0][i + 1])
+        tmp_ax = fig.add_subplot(num_axes, 1, i + 1)
+        tmp_ax.set_ylim(features[i + 1].min(), features[i + 1].max())
+        plots.append(tmp_ax.plot(data)[0])
+        axes.append(tmp_ax)
+
+    def update(feature):
+        for i, feat in enumerate(feature):
+            if i == 0:
+                axes[i].set_title("f0: " + str(feat))
+            else:
+                plots[i - 1].set_data(np.arange(feat.shape[0]), feat)
+
+    ani = anime.FuncAnimation(fig, update, features, interval=50, repeat_delay=1000)
+    filename = os.path.basename(filename).replace('.wav', '')
+    ani.save(filename + '.gif', writer="imagemagick")
 
 def counter(func):
     is_first = True
@@ -47,7 +72,6 @@ def visualizeSDR(title, encoding, sdrs=None, *, axes):
                 x.append(col);y.append(row)
         ax.scatter(x, y)
     plt.pause(0.1)
-
 
 def visualize(i, title, encoding, outputs):
     if param.args["VIZ_COLS"]:
