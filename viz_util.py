@@ -9,12 +9,12 @@ import matplotlib.animation as anime
 import param
 
 
-def write_gif_file(features, feature_set, filename):
+def write_gif_file(features, feature_iter, filename):
     fig = plt.figure()
     axes, plots = [], []
     num_axes = len(features) - 1
     for i in range(num_axes):
-        data = np.zeros_like(feature_set[0][i + 1])
+        data = np.zeros_like(feature_iter[0][i + 1])
         tmp_ax = fig.add_subplot(num_axes, 1, i + 1)
         tmp_ax.set_ylim(features[i + 1].min(), features[i + 1].max())
         plots.append(tmp_ax.plot(data)[0])
@@ -27,9 +27,12 @@ def write_gif_file(features, feature_set, filename):
             else:
                 plots[i - 1].set_data(np.arange(feat.shape[0]), feat)
 
-    ani = anime.FuncAnimation(fig, update, features, interval=50, repeat_delay=1000)
+    ani = anime.FuncAnimation(fig, update, features, interval=80, repeat_delay=1000)
     filename = os.path.basename(filename).replace('.wav', '')
-    ani.save(filename + '.gif', writer="imagemagick")
+    gif_name = filename + '.gif'
+    ani.save(gif_name, writer="imagemagick")
+
+    print("wrote wav file :", gif_name)
 
 def counter(func):
     is_first = True
@@ -63,7 +66,7 @@ def visualizeSDR(title, encoding, sdrs=None, *, axes):
         ncol = sdr.dimensions[1] if dim >= 2 else sdr.dimensions[0]
         ax.set_xlim(-0.75, ncol + 0.75)
         ax.set_ylim(-0.75, nrow + 0.75)
-        _ = ax.set_aspect(10.0) if param.dimension==1 else ax.set_aspect('equal')
+        _ = ax.set_aspect(10.0) if dim==1 else ax.set_aspect('equal')
         x, y = [], []
         if not dim == 2:
             dense = dense[np.newaxis, :]

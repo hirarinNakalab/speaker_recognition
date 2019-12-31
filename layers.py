@@ -36,7 +36,7 @@ class Layer:
             columnDimensions=self.output_shape,
             potentialPct=spParams['potentialPct'],
             potentialRadius=int(self.input_shape[0] * 3 / 8),
-            globalInhibition=spParams['globalInhibition'],
+            globalInhibition=True if len(self.output_shape)==1 else False,
             localAreaDensity=spParams['localAreaDensity'],
             synPermInactiveDec=spParams['synPermInactiveDec'],
             synPermActiveInc=spParams['synPermActiveInc'],

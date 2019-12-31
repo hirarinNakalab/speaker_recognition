@@ -4,7 +4,6 @@ import itertools
 import pyworld as pw
 import soundfile as sf
 import numpy as np
-import matplotlib.pyplot as plt
 
 from layers import Region, Layer, create_encoder, create_classifier
 from sdr_util import get_dense_array
@@ -48,10 +47,12 @@ def get_speaker_idx(speakers_dict, filename):
             ans = speakers_dict[speaker]
     return ans
 
+def get_features_iterator(features):
+    return [(f0, sp, ap) for f0, sp, ap in zip(*features)]
+
 
 if __name__ == '__main__':
     dataset = create_dataset(data_path = param.input_file)
-
     encoder, clf, model = define_model(width=40)
 
     speakers = 'm0001 f0002'
@@ -66,31 +67,32 @@ if __name__ == '__main__':
 
             x, fs = sf.read(wav)
             features = pw.wav2world(x, fs)
-            feature_set = [(f0, sp, ap) for f0, sp, ap in zip(*features)]
+            features_iter = get_features_iterator(features)
 
-            write_gif_file(features, feature_set)
+            write_gif_file(features, features_iter, filename=wav)
 
-                # encoding = get_dense_array(mel, encoder, width=width)
-                # outputs = model.forward(encoding)
-                # output = outputs[-1][0]
-                # anomaly.append(model.anomaly())
+            ans = get_speaker_idx(speakers_dict, wav)
+            for f0, sp, ap in features_iter:
 
-                # outputs = list(itertools.chain.from_iterable(outputs))
-                # viz_util.visualize(i, wav, encoding, outputs)
+                encoding = get_dense_array(mel, encoder, width=width)
+                outputs = model.forward(encoding)
+                output = outputs[-1][0]
+                anomaly.append(model.anomaly())
 
-                ans = get_speaker_idx(speakers_dict, wav)
+                outputs = list(itertools.chain.from_iterable(outputs))
+                viz_util.visualize(i, wav, encoding, outputs)
 
-                # if phase == 'train':
-                #     clf.learn(output, ans)
-                # elif phase == 'test':
-                #     pred = np.argmax(clf.infer(output))
-                #     answer.append(ans)
-                #     prediction.append(pred)
-                #
-                # i += 1
+                if phase == 'train':
+                    clf.learn(output, ans)
+                elif phase == 'test':
+                    pred = np.argmax(clf.infer(output))
+                    answer.append(ans)
+                    prediction.append(pred)
 
-            # if phase == 'test':
-            #     print('answer:', answer)
-            #     print('prediction:', prediction)
-            #     print('anomaly:', anomaly)
-            #     print('accuracy:', np.sum(np.array(answer)==np.array(prediction)))
+                i += 1
+
+            if phase == 'test':
+                print('answer:', answer)
+                print('prediction:', prediction)
+                print('anomaly:', anomaly)
+                print('accuracy:', np.sum(np.array(answer)==np.array(prediction)))
