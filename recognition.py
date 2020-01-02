@@ -2,7 +2,7 @@ from sklearn.metrics import confusion_matrix, f1_score
 import random
 
 from layers import create_encoder, create_model, create_clf
-from helpers import create_speakers_dict, create_dataset, get_speaker_idx, get_length_dict, experiment
+from helpers import create_speakers_dict, create_dataset, get_speaker_idx, get_length_dict, get_phase_whole_data, experiment
 import param
 
 
@@ -39,14 +39,10 @@ def main(default_parameters=param.default_parameters):
 
         elif phase == "test":
             clf = create_clf(model_dict=models, speakers_dict=speakers_dict)
-            train_data = [data
-                        for speaker in speakers_dict.keys()
-                        for data in dataset["train"][speaker][:length_dict["train"]]]
+            train_data = get_phase_whole_data("train", dataset, speakers_dict, length_dict)
             clf.optimize(train_data)
 
-            test_data = [data
-                         for speaker in speakers_dict.keys()
-                         for data in dataset[phase][speaker][:length]]
+            test_data = get_phase_whole_data(phase, dataset, speakers_dict, length_dict)
 
             answer = [get_speaker_idx(speakers_dict, wav) for wav in test_data]
             prediction = [clf.predict(wav) for wav in test_data]

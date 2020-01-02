@@ -65,6 +65,11 @@ def get_length_dict(dataset, speakers_dict):
         length_dict[phase] = length
     return length_dict
 
+def get_phase_whole_data(phase, dataset, speakers_dict, length_dict):
+    return [data
+     for speaker in speakers_dict.keys()
+     for data in dataset[phase][speaker][:length_dict[phase]]]
+
 def normalize(tensor):
     # Subtract the mean, and scale to the interval [-1,1]
     tensor_minusmean = tensor - tensor.mean()
@@ -72,7 +77,7 @@ def normalize(tensor):
 
 def experiment(wavs, encoder, model):
     for wav in wavs:
-        print("wavefile:{}".format(wav))
+        print("wavefile:{}".format(os.path.basename(wav)))
 
         x, fs = torchaudio.load(wav)
         x = normalize(x).numpy().reshape(-1).astype(np.float64)
