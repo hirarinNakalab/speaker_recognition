@@ -1,20 +1,12 @@
-import toolz as tz
-from toolz import curried as c
-
 from htm.bindings.sdr import SDR
 
+import param
 
-@tz.curry
-def get_encoding(sdr, shape):
-    encoding = SDR(dimensions=tuple(shape))
-    encoding.dense = sdr
+setting = param.default_parameters
+
+def get_encoding(encoder, feature):
+    encodings = [encoder.encode(feat) for feat in feature]
+    encoding = SDR(setting["enc"]["size"] * setting["enc"]["featureCount"])
+    encoding.concatenate(encodings)
     return encoding
 
-@tz.curry
-def get_dense_array(val, enc, width):
-    return tz.pipe(val,
-                   c.map(lambda x: x*100),
-                   c.map(enc.encode),
-                   c.map(lambda x: getattr(x, 'dense')),
-                   list,
-                   get_encoding(shape=(val.shape[-1], width)))

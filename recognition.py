@@ -1,38 +1,34 @@
 import os
-import itertools
 
 from nnmnkwii.preprocessing import trim_zeros_frames
 import numpy as np
 import pyworld as pw
-import matplotlib.pyplot as plt
 import pysptk
 import torchaudio
 
-from layers import Region, Layer, create_encoder
-from sdr_util import get_dense_array
-from viz_util import visualize, write_gif_file
+from layers import create_encoder, create_model
+from sdr_util import get_encoding
 import param
 
 
-def create_dataset(data_path):
+def create_dataset(data_path, speakers_dict):
     wav_files = get_wavfile_list(data_path)
-    n_files = len(wav_files)
-    split_idx = int(n_files * 0.6)
-    dataset = {'train': wav_files[:split_idx], 'test': wav_files[split_idx:]}
+    speakers_data = {speaker: [wav for wav in wav_files if speaker in wav]
+                     for speaker in speakers_dict.keys()}
+    dataset = {'train': dict(), 'test':dict()}
+    for phase in ['train', 'test']:
+        for speaker in speakers_dict.keys():
+            data = speakers_data[speaker]
+            split_idx = int(len(data) * 0.6)
+            if phase == "train":
+                dataset[phase][speaker] = data[:split_idx]
+            elif phase == "test":
+                dataset[phase][speaker] = data[split_idx:]
     return dataset
 
 def create_speakers_dict(speakers):
     speakers = speakers.split()
     return {k: v for v, k in enumerate(speakers)}
-
-def define_model(width):
-    encoder = create_encoder(width=width)
-    model = Region(
-        Layer(din=(20, width), dout=(30, 30)),
-        Layer(din=(30, 30), dout=(20, 20))
-    )
-    model.compile()
-    return encoder, model
 
 def get_wavfile_list(path):
     wav_files = []
@@ -61,59 +57,78 @@ def get_features(x, fs):
     bap = pw.code_aperiodicity(ap, fs)
     return f0, mcep, bap
 
-def get_features_iterator(features):
-    return [(f0, sp, ap) for f0, sp, ap in zip(*features)]
+def get_length_dict(dataset, speakers_dict):
+    length_dict = {}
+    for phase in ["train", "test"]:
+        length = 100
+        for speaker in speakers_dict.keys():
+            length = min(length, len(dataset[phase][speaker]))
+        length_dict[phase] = length
+    return length_dict
 
 def normalize(tensor):
     # Subtract the mean, and scale to the interval [-1,1]
     tensor_minusmean = tensor - tensor.mean()
     return tensor_minusmean/tensor_minusmean.abs().max()
 
+def experiment(wavs, encoder, model):
+    for wav in wavs:
+        print("wavefile:{}".format(wav))
 
+        x, fs = torchaudio.load(wav)
+        x = normalize(x).numpy().reshape(-1).astype(np.float64)
 
-if __name__ == '__main__':
+        f0, mcep, bap = get_features(x, fs)
+        features = np.concatenate([f0.reshape(-1, 1), mcep[:, :13], -bap], axis=1)
 
-    dataset = create_dataset(data_path = param.input_file)
-    encoder, model = define_model(width=40)
+        anomaly = []
+        for feature in features:
+            encoding = get_encoding(encoder, feature)
+            model.forward(encoding)
+            anomaly.append(model.anomaly())
+
+        print("average anomaly score:", np.mean(anomaly), end='\n\n')
+
+def main():
 
     speakers = 'm0001 f0002'
     speakers_dict = create_speakers_dict(speakers)
 
-    fig, axes = plt.subplots(16, 1)
+    dataset = create_dataset(param.input_file, speakers_dict)
+    encoder = create_encoder()
+
+    length_dict = get_length_dict(dataset, speakers_dict)
+
+    models = {}
     for phase in ['train', 'test']:
-        wavs = dataset[phase]
+        print("====={}ing phase=====".format(phase))
+        print()
+        length = length_dict[phase]
 
-        for wav in wavs:
-            print(wav)
+        for speaker in speakers_dict.keys():
+            print("="*30)
+            print("model of ", speaker)
+            print("="*30)
+            print()
 
-            answer, prediction, anomaly = [], [], []
+            if phase == "train":
+                model = create_model()
+                models[speaker] = model
 
-            x, fs = torchaudio.load(wav)
+                model.train()
 
-            x = normalize(x).numpy().reshape(-1).astype(np.float64)
+                wav_data = dataset[phase][speaker][:length]
+            else:
+                model = models[speaker]
+                model.eval()
 
-            f0, mcep, bap = get_features(x, fs)
+                wav_data = [data
+                             for speaker in speakers_dict.keys()
+                             for data in dataset[phase][speaker][:length]]
 
-            features = np.concatenate([f0.reshape(-1, 1), mcep[:, :13], -bap], axis=1)
+            experiment(wav_data, encoder, model)
+            print("{}ing data count: {}".format(phase, len(wav_data)), end='\n\n')
 
-            axes[0].cla()
-            axes[0].plot(x)
-            for i, feature in enumerate(features.T, start=1):
-                axes[i].cla()
-                axes[i].plot(feature)
 
-            plt.pause(1)
-
-            filename = os.path.basename(wav).replace(".wav", "") + ".png"
-            plt.savefig(filename)
-
-            # write_gif_file(features, features_iter, filename=wav)
-
-            # ans = get_speaker_idx(speakers_dict, wav)
-            #
-            # encoding = get_dense_array(mel, encoder, width=width)
-            # outputs = model.forward(encoding)
-            # anomaly.append(model.anomaly())
-            #
-            # outputs = list(itertools.chain.from_iterable(outputs))
-            # visualize(i, wav, encoding, outputs)
+if __name__ == '__main__':
+    main()

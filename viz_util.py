@@ -8,6 +8,19 @@ import matplotlib.animation as anime
 
 import param
 
+setting = param.default_parameters
+
+def plot_features(waveform, features, filename):
+    fig, axes = plt.subplots(setting["enc"]["featureCount"]+1, 1)
+
+    axes[0].cla()
+    axes[0].plot(waveform)
+    for i, feature in enumerate(features.T, start=1):
+        axes[i].cla()
+        axes[i].plot(feature)
+
+    filename = os.path.basename(filename).replace(".wav", "") + ".png"
+    plt.savefig(filename)
 
 def write_gif_file(features, features_iter, filename):
     fig = plt.figure()

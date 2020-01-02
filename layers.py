@@ -1,30 +1,46 @@
+import math
+
+from htm.algorithms.anomaly_likelihood import AnomalyLikelihood
 from htm.bindings.algorithms import SpatialPooler
 from htm.bindings.algorithms import TemporalMemory
-from htm.bindings.algorithms import Classifier
 from htm.encoders.rdse import RDSE, RDSE_Parameters
 from htm.bindings.sdr import SDR
 
 import param
 
+setting = param.default_parameters
 
-def create_encoder(width):
-    setting = param.parameters
+def create_encoder():
+    print("creating encoder...")
+    print(setting["enc"])
     scalarEncoderParams = RDSE_Parameters()
-    scalarEncoderParams.size = width
+    scalarEncoderParams.size = setting["enc"]["size"]
     scalarEncoderParams.sparsity = setting["enc"]["sparsity"]
     scalarEncoderParams.resolution = setting["enc"]["resolution"]
     scalarEncoder = RDSE(scalarEncoderParams)
+    print()
     return scalarEncoder
 
-def create_classifier():
-    return Classifier()
+def create_model():
+    print("creating model...")
+    print(setting["sp"])
+    print(setting["tm"])
+    model = Layer(
+        din=(setting["enc"]["size"] * setting["enc"]["featureCount"],),
+        dout=(setting["sp"]["columnCount"],)
+    )
+    model.compile()
+    print()
+    return model
+
+
 
 class Layer:
-
-    def __init__(self, din=(10, 10), dout=(10, 10), temporal=True, param_dict=param.parameters):
+    def __init__(self, din=(10, 10), dout=(10, 10), temporal=True, param_dict=param.default_parameters):
         self.input_shape = din
         self.output_shape = dout
         self.temporal = temporal
+        self.learn = True
         self.param = dict(param_dict)
         self.sp = SpatialPooler()
         self.tm = TemporalMemory() if temporal else None
@@ -35,7 +51,7 @@ class Layer:
             inputDimensions=self.input_shape,
             columnDimensions=self.output_shape,
             potentialPct=spParams['potentialPct'],
-            potentialRadius=int(self.input_shape[0] * 3 / 8),
+            potentialRadius=self.input_shape[0],
             globalInhibition=True if len(self.output_shape)==1 else False,
             localAreaDensity=spParams['localAreaDensity'],
             synPermInactiveDec=spParams['synPermInactiveDec'],
@@ -50,36 +66,43 @@ class Layer:
                 columnDimensions=self.output_shape,
                 cellsPerColumn=tmParams["cellsPerColumn"],
                 activationThreshold=tmParams["activationThreshold"],
-                initialPermanence=tmParams["initialPermanence"],
-                connectedPermanence=tmParams["connectedPermanence"],
+                initialPermanence=tmParams["initialPerm"],
+                connectedPermanence=spParams["synPermConnected"],
                 minThreshold=tmParams["minThreshold"],
-                maxNewSynapseCount=tmParams["maxNewSynapseCount"],
-                permanenceIncrement=tmParams["permanenceIncrement"],
-                permanenceDecrement=tmParams["permanenceDecrement"],
-                predictedSegmentDecrement=tmParams['predictedSegmentDecrement'],
+                maxNewSynapseCount=tmParams["newSynapseCount"],
+                permanenceIncrement=tmParams["permanenceInc"],
+                permanenceDecrement=tmParams["permanenceDec"],
+                predictedSegmentDecrement=0.0,
                 maxSegmentsPerCell=tmParams["maxSegmentsPerCell"],
                 maxSynapsesPerSegment=tmParams["maxSynapsesPerSegment"]
             )
 
-    def predict(self, encoding, learn=True):
+    def forward(self, encoding):
         activeColumns = SDR(self.sp.getColumnDimensions())
-        self.sp.compute(encoding, learn, activeColumns)
+        self.sp.compute(encoding, self.learn, activeColumns)
 
         predictedColumns = None
         if self.temporal:
-            self.tm.compute(activeColumns, learn)
-            self.tm.activateDendrites(learn)
+            self.tm.compute(activeColumns, self.learn)
+            self.tm.activateDendrites(self.learn)
             predictedColumnIndices = {self.tm.columnForCell(i)
                                       for i in self.tm.getPredictiveCells().sparse}
             predictedColumns = SDR(self.sp.getColumnDimensions())
             predictedColumns.sparse = list(predictedColumnIndices)
         return activeColumns, predictedColumns
 
+    def train(self):
+        self.learn = True
+
+    def eval(self):
+        self.learn = False
+
     def anomaly(self):
         return float(self.tm.anomaly) if self.temporal else None
 
     def reset(self):
-        self.tm.reset() if self.temporal else None
+        if self.temporal:
+            self.tm.reset()
 
     def save(self, i):
         print('Saving Model...')
@@ -99,33 +122,41 @@ class Layer:
 
 
 class Region:
-
     def __init__(self, *args):
-        self.regions = [region for region in args if isinstance(region, Layer)]
-        self.reg_num = len(self.regions)
+        self.units = [arg for arg in args if isinstance(arg, Layer)]
+        self.units_num = len(self.units)
+        self.learn = True
 
     def compile(self):
-        for i, reg in enumerate(range(self.reg_num)):
-            self.regions[i].compile()
+        for i, unit in enumerate(range(self.units_num)):
+            self.units[i].compile()
 
     def save(self):
-        for i, reg in enumerate(range(self.reg_num)):
-            self.regions[i].save(i)
+        for i, unit in enumerate(range(self.units_num)):
+            self.units[i].save(i)
 
     def load(self):
-        for i, reg in enumerate(range(self.reg_num)):
-            self.regions[i].load(i)
+        for i, unit in enumerate(range(self.units_num)):
+            self.units[i].load(i)
 
-    def forward(self, x, learn=True):
+    def train(self):
+        for i, unit in enumerate(range(self.units_num)):
+            self.units[i].train()
+
+    def eval(self):
+        for i, unit in enumerate(range(self.units_num)):
+            self.units[i].eval()
+
+    def forward(self, x):
         outputs = []
-        for i, reg in enumerate(range(self.reg_num)):
-            act, x = self.regions[i].predict(x, learn)
+        for i, unit in enumerate(range(self.units_num)):
+            act, x = self.units[i].forward(x)
             outputs.append((act, x))
         return outputs
 
     def anomaly(self):
-        return float(self.regions[-1].tm.anomaly) if self.regions[-1].temporal else None
+        return float(self.units[-1].tm.anomaly) if self.units[-1].temporal else None
 
     def reset(self):
-        for i, reg in enumerate(range(self.reg_num)):
-            self.regions[i].reset()
+        for i, unit in enumerate(range(self.units_num)):
+            self.units[i].reset()
