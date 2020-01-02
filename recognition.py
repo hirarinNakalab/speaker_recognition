@@ -21,9 +21,7 @@ def main():
         length = length_dict[phase]
 
         for speaker in speakers_dict.keys():
-            print("="*30)
-            print("model of ", speaker)
-            print("="*30+"\n")
+            print("="*30+"model of ", speaker, "="*30+"\n")
 
             if phase == "train":
                 model = create_model()
@@ -31,6 +29,11 @@ def main():
                 model.train()
 
                 wav_data = dataset[phase][speaker][:length]
+                num_epochs = 10
+                for epoch in range(num_epochs):
+                    print("epoch {}".format(epoch))
+                    experiment(random.shuffle(wav_data), encoder, model)
+                    print("{}ing data count: {}".format(phase, len(wav_data)), end='\n\n')
             else:
                 model = models[speaker]
                 model.eval()
@@ -38,12 +41,9 @@ def main():
                 wav_data = [data
                              for speaker in speakers_dict.keys()
                              for data in dataset[phase][speaker][:length]]
-
-            num_epochs = 10
-            for epoch in range(num_epochs):
-                print("epoch {}".format(epoch))
-                experiment(random.shuffle(wav_data), encoder, model)
+                experiment(wav_data, encoder, model)
                 print("{}ing data count: {}".format(phase, len(wav_data)), end='\n\n')
+
 
 
 if __name__ == '__main__':
