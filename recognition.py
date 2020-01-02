@@ -38,11 +38,10 @@ def main(default_parameters=param.default_parameters):
 
         elif phase == "test":
             clf = create_clf(model_dict=models, speakers_dict=speakers_dict)
-            train_data = get_phase_whole_data("train", dataset, speakers_dict, length_dict)
+            train_data, test_data = [get_phase_whole_data(phase, dataset, speakers_dict, length_dict) for phase in ["train", "test"]]
             clf.optimize(train_data)
 
-            test_data = get_phase_whole_data(phase, dataset, speakers_dict, length_dict)
-            ans, pred = get_answer_and_prediction(train_data, speakers_dict, clf)
+            ans, pred = get_answer_and_prediction(test_data, speakers_dict, clf)
 
             f1, cm = get_f1_and_cm(ans, pred)
 
