@@ -9,12 +9,12 @@ import matplotlib.animation as anime
 import param
 
 
-def write_gif_file(features, feature_iter, filename):
+def write_gif_file(features, features_iter, filename):
     fig = plt.figure()
     axes, plots = [], []
     num_axes = len(features) - 1
     for i in range(num_axes):
-        data = np.zeros_like(feature_iter[0][i + 1])
+        data = np.zeros_like(features_iter[0][i + 1])
         tmp_ax = fig.add_subplot(num_axes, 1, i + 1)
         tmp_ax.set_ylim(features[i + 1].min(), features[i + 1].max())
         plots.append(tmp_ax.plot(data)[0])
@@ -27,12 +27,11 @@ def write_gif_file(features, feature_iter, filename):
             else:
                 plots[i - 1].set_data(np.arange(feat.shape[0]), feat)
 
-    ani = anime.FuncAnimation(fig, update, features, interval=80, repeat_delay=1000)
+    ani = anime.FuncAnimation(fig, update, features_iter, interval=80, repeat_delay=1000)
     filename = os.path.basename(filename).replace('.wav', '')
     gif_name = filename + '.gif'
     ani.save(gif_name, writer="imagemagick")
-
-    print("wrote wav file :", gif_name)
+    print("wrote to wav file :", gif_name)
 
 def counter(func):
     is_first = True
