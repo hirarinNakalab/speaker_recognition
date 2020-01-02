@@ -1,3 +1,4 @@
+from collections import defaultdict
 import os
 
 from nnmnkwii.preprocessing import trim_zeros_frames
@@ -13,7 +14,7 @@ def create_dataset(data_path, speakers_dict):
     wav_files = get_wavfile_list(data_path)
     speakers_data = {speaker: [wav for wav in wav_files if speaker in wav]
                      for speaker in speakers_dict.keys()}
-    dataset = {'train': dict(), 'test':dict()}
+    dataset = defaultdict(lambda : defaultdict(list))
     for phase in ['train', 'test']:
         for speaker in speakers_dict.keys():
             data = speakers_data[speaker]
