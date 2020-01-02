@@ -1,14 +1,13 @@
-from sklearn.metrics import confusion_matrix, f1_score
 import random
 
 from layers import create_encoder, create_model, create_clf
-from helpers import create_speakers_dict, create_dataset, get_speaker_idx, get_length_dict, get_phase_whole_data, experiment
+from helpers import create_speakers_dict, create_dataset, get_answer_and_prediction, get_f1_and_cm, get_length_dict, get_phase_whole_data, train
 import param
 
 
 
 def main(default_parameters=param.default_parameters):
-    speakers = 'm0001 f0002'
+    speakers = 'unk m0001 f0002'
     speakers_dict = create_speakers_dict(speakers)
 
     dataset = create_dataset(param.input_file, speakers_dict)
@@ -33,7 +32,7 @@ def main(default_parameters=param.default_parameters):
                 num_epochs = 10
                 for epoch in range(num_epochs):
                     print("epoch {}".format(epoch))
-                    experiment(random.shuffle(train_data), encoder, model)
+                    train(random.shuffle(train_data), encoder, model)
 
                 print("{}ing data count: {}".format(phase, len(train_data)), end='\n\n')
 
@@ -43,12 +42,9 @@ def main(default_parameters=param.default_parameters):
             clf.optimize(train_data)
 
             test_data = get_phase_whole_data(phase, dataset, speakers_dict, length_dict)
+            ans, pred = get_answer_and_prediction(train_data, speakers_dict, clf)
 
-            answer = [get_speaker_idx(speakers_dict, wav) for wav in test_data]
-            prediction = [clf.predict(wav) for wav in test_data]
-
-            cm = confusion_matrix(answer, prediction)
-            f1 = f1_score(answer, prediction)
+            f1, cm = get_f1_and_cm(ans, pred)
 
             print("{}ing data count: {}".format(phase, len(test_data)), end='\n\n')
 

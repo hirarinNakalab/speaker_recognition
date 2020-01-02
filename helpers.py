@@ -2,6 +2,7 @@ from collections import defaultdict
 import os
 
 from nnmnkwii.preprocessing import trim_zeros_frames
+from sklearn.metrics import confusion_matrix, f1_score
 import numpy as np
 import pyworld as pw
 import pysptk
@@ -28,6 +29,16 @@ def create_dataset(data_path, speakers_dict):
 def create_speakers_dict(speakers):
     speakers = speakers.split()
     return {k: v for v, k in enumerate(speakers)}
+
+def get_answer_and_prediction(test_data, speakers_dict, clf):
+    answer = [get_speaker_idx(speakers_dict, wav) for wav in test_data]
+    prediction = [clf.predict(wav) for wav in test_data]
+    return answer, prediction
+
+def get_f1_and_cm(ans, pred):
+    cm = confusion_matrix(ans, pred)
+    f1 = f1_score(ans, pred)
+    return cm, f1
 
 def get_wavfile_list(path):
     wav_files = []
@@ -75,20 +86,25 @@ def normalize(tensor):
     tensor_minusmean = tensor - tensor.mean()
     return tensor_minusmean/tensor_minusmean.abs().max()
 
-def experiment(wavs, encoder, model):
+def train(wavs, encoder, model):
     for wav in wavs:
-        print("wavefile:{}".format(os.path.basename(wav)))
+        experiment(wav, encoder, model)
 
-        x, fs = torchaudio.load(wav)
-        x = normalize(x).numpy().reshape(-1).astype(np.float64)
+def experiment(wav, encoder, model):
+    print("wavefile:{}".format(os.path.basename(wav)))
 
-        f0, mcep, bap = get_features(x, fs)
-        features = np.concatenate([f0.reshape(-1, 1), mcep[:, :13], -bap], axis=1)
+    x, fs = torchaudio.load(wav)
+    x = normalize(x).numpy().reshape(-1).astype(np.float64)
 
-        anomaly = []
-        for feature in features:
-            encoding = get_encoding(encoder, feature)
-            model.forward(encoding)
-            anomaly.append(model.anomaly())
+    f0, mcep, bap = get_features(x, fs)
+    features = np.concatenate([f0.reshape(-1, 1), mcep[:, :13], -bap], axis=1)
 
-        print("average anomaly score:", np.mean(anomaly), end='\n\n')
+    anomaly = []
+    for feature in features:
+        encoding = get_encoding(encoder, feature)
+        model.forward(encoding)
+        anomaly.append(model.anomaly())
+
+    print("average anomaly score:", np.mean(anomaly), end='\n\n')
+
+    return np.mean(anomaly)

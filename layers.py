@@ -1,8 +1,11 @@
+import numpy as np
+
 from htm.bindings.algorithms import SpatialPooler
 from htm.bindings.algorithms import TemporalMemory
 from htm.encoders.rdse import RDSE, RDSE_Parameters
 from htm.bindings.sdr import SDR
 
+from helpers import experiment, get_answer_and_prediction, get_f1_and_cm
 import param
 
 setting = param.default_parameters
@@ -36,18 +39,31 @@ def create_clf(model_dict, speakers_dict):
 
 
 class OVRClassifier:
-    def __init__(self, model_dict, speakers_dict):
+    def __init__(self, model_dict, speakers_dict, encoder):
         self.threshold = 0
         self.model_dict = model_dict
         self.speakers_dict = speakers_dict
+        self.encoder = encoder
 
-    def optimize(self, train_data):
+    def optimize(self, train_data, encoder):
+        ths = np.linspace(0, 1, 1000)
+        for th in ths:
+            self.threshold = th
+            ans, pred = get_answer_and_prediction(train_data, self.speakers_dict, self)
+            results = {th: get_f1_and_cm(ans, pred)[0]}
+
+        results_sorted = sorted(results.items(), key=lambda x: x[1], reverse=True)
+        self.threshold = float(results_sorted[0].key())
+
+    def predict(self, data):
+        anomalies = {}
         for speaker in self.speakers_dict.keys():
             model = self.model_dict[speaker]
             model.eval()
-
-    def predict(self, test_data):
-        return None
+            anomalies[speaker] = experiment(data, self.encoder, model)
+        anom_sorted = sorted(anomalies.items(), key=lambda x: x[1], reverse=True)
+        return self.speakers_dict["unk"] if all(anomalies > self.threshold) else self.speakers_dict[
+            anom_sorted[0].key()]
 
 
 class Layer:
