@@ -1,6 +1,3 @@
-import math
-
-from htm.algorithms.anomaly_likelihood import AnomalyLikelihood
 from htm.bindings.algorithms import SpatialPooler
 from htm.bindings.algorithms import TemporalMemory
 from htm.encoders.rdse import RDSE, RDSE_Parameters
@@ -33,6 +30,24 @@ def create_model():
     print()
     return model
 
+def create_clf(model_dict, speakers_dict):
+    return OVRClassifier(model_dict, speakers_dict)
+
+
+
+class OVRClassifier:
+    def __init__(self, model_dict, speakers_dict):
+        self.threshold = 0
+        self.model_dict = model_dict
+        self.speakers_dict = speakers_dict
+
+    def optimize(self, train_data):
+        for speaker in self.speakers_dict.keys():
+            model = self.model_dict[speaker]
+            model.eval()
+
+    def predict(self, test_data):
+        return None
 
 
 class Layer:
