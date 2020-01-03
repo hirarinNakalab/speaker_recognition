@@ -39,15 +39,22 @@ def normalize(tensor):
     tensor_minusmean = tensor - tensor.mean()
     return tensor_minusmean/tensor_minusmean.abs().max()
 
+def sort_dict_reverse(dict):
+    return sorted(dict.items(), key=lambda x: x[1], reverse=True)
+
+def sort_dict_by_len(dict):
+    return sorted(dict.items(), key=lambda x: len(x[1]))
+
 
 class Experiment:
-    def __init__(self, encoder, sdr_length):
+    def __init__(self, encoder, sdr_length, n_features):
         self.encoder = encoder
         self.sdr_length = sdr_length
+        self.n_features = n_features
 
     def get_encoding(self, feature):
         encodings = [self.encoder.encode(feat) for feat in feature]
-        encoding = SDR(self.sdr_length)
+        encoding = SDR(self.sdr_length * self.n_features)
         encoding.concatenate(encodings)
         return encoding
 
@@ -58,12 +65,15 @@ class Experiment:
         x = normalize(x).numpy().reshape(-1).astype(np.float64)
 
         f0, mcep, bap = get_features(x, fs)
-        features = np.concatenate([f0.reshape(-1, 1), mcep[:, :13], -bap], axis=1)
+        features = np.concatenate([
+            f0.reshape[:, np.newaxis],
+            mcep[:, :self.n_features - 2],
+            -bap
+        ], axis=1)
 
         anomaly = []
         for feature in features:
-            encoding = self.get_encoding(feature)
-            model.forward(encoding)
+            model.forward(self.get_encoding(feature))
             anomaly.append(model.anomaly())
 
         print("average anomaly score:", np.mean(anomaly), end='\n\n')
@@ -98,7 +108,7 @@ class OVRClassifier:
             pred = [self.predict(data) for data in train_data]
             results[th] = f1_score(ans, pred)
 
-        results_sorted = sorted(results.items(), key=lambda x: x[1], reverse=True)
+        results_sorted = sort_dict_reverse(results)
         self.threshold = float(results_sorted[0][1])
 
     def predict(self, data):
@@ -109,12 +119,12 @@ class OVRClassifier:
             model = self.models[speaker]
             model.eval()
             anomalies[speaker] = self.exp.execute(data, model)
-        anom_sorted = sorted(anomalies.items(), key=lambda x: x[1], reverse=True)
+        anom_sorted = sort_dict_reverse(anomalies)
 
-        if all([(val > self.threshold) for val in anomalies.values()]):
-            return self.sp2idx["unk"]
-        else:
-            return self.sp2idx[anom_sorted[0].key()]
+        is_over_th = [(val > self.threshold) for val in anomalies.values()]
+        pred_sp = "unk" if all(is_over_th) else anom_sorted[0][0]
+
+        return self.sp2idx[pred_sp]
 
     def score(self, test_data):
         ans = [self.get_speaker_idx(data) for data in test_data]
@@ -128,14 +138,14 @@ class Learner:
         self.split_ratio = 0.8
         self.input_path = input_path
         self.setting = setting
-        self.sdr_length = setting["enc"]["size"] * setting["enc"]["featureCount"]
+        self.sdr_length = setting["enc"]["size"]
+        self.n_features = setting["enc"]["featureCount"]
         self.sp2idx = self.speakers_to_idx()
         self.idx2sp = self.idx_to_speakers()
         self.encoder = self.create_encoder()
         self.experiment = self.create_experiment()
         self.train_dataset, self.test_dataset = self.create_dataset()
-        self.models = {sp: self.create_model()
-                       for sp in self.sp2idx.keys() if not sp == "unk"}
+        self.models = self.create_models()
         self.clf = self.create_clf()
 
     def speakers_to_idx(self):
@@ -154,7 +164,7 @@ class Learner:
                 continue
             speakers_data[speaker] = [wav for wav in wav_files if speaker in wav]
 
-        sorted_spdata = sorted(speakers_data.items(), key=lambda x: len(x[1]))
+        sorted_spdata = sort_dict_by_len(speakers_data)
         min_length = len(sorted_spdata[0][1])
         split_idx = int(min_length * self.split_ratio)
 
@@ -198,7 +208,16 @@ class Learner:
         return OVRClassifier(self.models, self.sp2idx, self.experiment)
 
     def create_experiment(self):
-        return Experiment(self.encoder, self.sdr_length)
+        return Experiment(self.encoder, self.sdr_length, self.n_features)
+
+    def create_models(self):
+        return {speaker: self.create_model()
+                for speaker in self.sp2idx.keys() if not speaker == "unk"}
+
+    def get_all_data(self, dataset):
+        return [data
+                for speaker in self.sp2idx
+                for data in dataset[speaker]]
 
     def fit(self, epoch):
         print("=====training phase=====")
@@ -216,22 +235,20 @@ class Learner:
             for epoch in range(epoch):
                 print("epoch {}".format(epoch))
                 for data in random.shuffle(train_data):
-                    self.exp.execute(data, model)
+                    self.experiment.execute(data, model)
 
-            print("training data count: {}".format(len(train_data)), end='\n\n')
+            fmt = "training data count: {}"
+            print(fmt.format(len(train_data)), end='\n\n')
 
-        all_train_data = [data
-                      for speaker in self.sp2idx
-                      for data in self.train_dataset[speaker]]
+        all_train_data = self.get_all_data(self.train_dataset)
 
         self.clf.optimize(all_train_data)
 
     def evaluate(self):
         print("=====training phase=====")
 
-        all_test_data = [data
-                          for speaker in self.sp2idx
-                          for data in self.test_dataset[speaker]]
+        all_test_data = self.get_all_data(self.test_dataset)
         f1, cm = self.clf.score(all_test_data)
-        print("testing data count: {}".format(len(all_test_data)), end='\n\n')
+        fmt = "testing data count: {}"
+        print(fmt.format(len(all_test_data)), end='\n\n')
         return f1, cm
