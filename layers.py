@@ -1,73 +1,10 @@
-import numpy as np
-
 from htm.bindings.algorithms import SpatialPooler
 from htm.bindings.algorithms import TemporalMemory
-from htm.encoders.rdse import RDSE, RDSE_Parameters
 from htm.bindings.sdr import SDR
-
-from helpers import experiment, get_answer_and_prediction, get_f1_and_cm
-import param
-
-setting = param.default_parameters
-
-def create_encoder():
-    print("creating encoder...")
-    print(setting["enc"])
-    scalarEncoderParams = RDSE_Parameters()
-    scalarEncoderParams.size = setting["enc"]["size"]
-    scalarEncoderParams.sparsity = setting["enc"]["sparsity"]
-    scalarEncoderParams.resolution = setting["enc"]["resolution"]
-    scalarEncoder = RDSE(scalarEncoderParams)
-    print()
-    return scalarEncoder
-
-def create_model():
-    print("creating model...")
-    print(setting["sp"])
-    print(setting["tm"])
-    model = Layer(
-        din=(setting["enc"]["size"] * setting["enc"]["featureCount"],),
-        dout=(setting["sp"]["columnCount"],)
-    )
-    model.compile()
-    print()
-    return model
-
-def create_clf(model_dict, speakers_dict):
-    return OVRClassifier(model_dict, speakers_dict)
-
-
-
-class OVRClassifier:
-    def __init__(self, model_dict, speakers_dict, encoder):
-        self.threshold = 0
-        self.model_dict = model_dict
-        self.speakers_dict = speakers_dict
-        self.encoder = encoder
-
-    def optimize(self, train_data, encoder):
-        ths = np.linspace(0, 1, 1000)
-        for th in ths:
-            self.threshold = th
-            ans, pred = get_answer_and_prediction(train_data, self.speakers_dict, self)
-            results = {th: get_f1_and_cm(ans, pred)[0]}
-
-        results_sorted = sorted(results.items(), key=lambda x: x[1], reverse=True)
-        self.threshold = float(results_sorted[0].key())
-
-    def predict(self, data):
-        anomalies = {}
-        for speaker in self.speakers_dict.keys():
-            model = self.model_dict[speaker]
-            model.eval()
-            anomalies[speaker] = experiment(data, self.encoder, model)
-        anom_sorted = sorted(anomalies.items(), key=lambda x: x[1], reverse=True)
-        return self.speakers_dict["unk"] if all(anomalies > self.threshold) else self.speakers_dict[
-            anom_sorted[0].key()]
 
 
 class Layer:
-    def __init__(self, din=(10, 10), dout=(10, 10), temporal=True, param_dict=param.default_parameters):
+    def __init__(self, din=(10, 10), dout=(10, 10), temporal=True, param_dict=setting):
         self.input_shape = din
         self.output_shape = dout
         self.temporal = temporal

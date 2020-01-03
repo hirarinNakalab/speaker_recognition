@@ -8,9 +8,8 @@ import matplotlib.animation as anime
 
 import param
 
-setting = param.default_parameters
 
-def plot_features(waveform, features, filename):
+def plot_features(waveform, features, filename, setting):
     fig, axes = plt.subplots(setting["enc"]["featureCount"]+1, 1)
 
     axes[0].cla()
