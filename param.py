@@ -2,10 +2,6 @@ import os
 
 # Arguments
 args = {
-    "VIZ_COLS": True,
-    "DO_LEARNING": True,
-    "USE_OLD_MODEL": False,
-    "SAVE_MODEL": False,
     "INPUT_PATH": 'data/31',
     "MODEL_PATH": '../saved_model',
     "SAVED_SP": 'sp_region{}.pickle',

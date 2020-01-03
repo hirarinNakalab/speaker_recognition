@@ -2,19 +2,20 @@ from htm.bindings.algorithms import SpatialPooler
 from htm.bindings.algorithms import TemporalMemory
 from htm.bindings.sdr import SDR
 
+import param
 
 class Layer:
-    def __init__(self, din=(10, 10), dout=(10, 10), temporal=True, param_dict=setting):
+    def __init__(self, din=(10, 10), dout=(10, 10), temporal=True, setting=param.default_parameters):
         self.input_shape = din
         self.output_shape = dout
         self.temporal = temporal
         self.learn = True
-        self.param = dict(param_dict)
+        self.setting = dict(setting)
         self.sp = SpatialPooler()
         self.tm = TemporalMemory() if temporal else None
 
     def compile(self):
-        spParams = self.param["sp"]
+        spParams = self.setting["sp"]
         self.sp = SpatialPooler(
             inputDimensions=self.input_shape,
             columnDimensions=self.output_shape,
@@ -29,7 +30,7 @@ class Layer:
             wrapAround=spParams['wrapAround'],
         )
         if self.temporal:
-            tmParams = self.param["tm"]
+            tmParams = self.setting["tm"]
             self.tm = TemporalMemory(
                 columnDimensions=self.output_shape,
                 cellsPerColumn=tmParams["cellsPerColumn"],
@@ -89,42 +90,42 @@ class Layer:
             print(str(self.tm))
 
 
-class Region:
-    def __init__(self, *args):
-        self.units = [arg for arg in args if isinstance(arg, Layer)]
-        self.units_num = len(self.units)
-        self.learn = True
-
-    def compile(self):
-        for i, unit in enumerate(range(self.units_num)):
-            self.units[i].compile()
-
-    def save(self):
-        for i, unit in enumerate(range(self.units_num)):
-            self.units[i].save(i)
-
-    def load(self):
-        for i, unit in enumerate(range(self.units_num)):
-            self.units[i].load(i)
-
-    def train(self):
-        for i, unit in enumerate(range(self.units_num)):
-            self.units[i].train()
-
-    def eval(self):
-        for i, unit in enumerate(range(self.units_num)):
-            self.units[i].eval()
-
-    def forward(self, x):
-        outputs = []
-        for i, unit in enumerate(range(self.units_num)):
-            act, x = self.units[i].forward(x)
-            outputs.append((act, x))
-        return outputs
-
-    def anomaly(self):
-        return float(self.units[-1].tm.anomaly) if self.units[-1].temporal else None
-
-    def reset(self):
-        for i, unit in enumerate(range(self.units_num)):
-            self.units[i].reset()
+# class Region:
+#     def __init__(self, *args):
+#         self.units = [arg for arg in args if isinstance(arg, Layer)]
+#         self.units_num = len(self.units)
+#         self.learn = True
+#
+#     def compile(self):
+#         for i, unit in enumerate(range(self.units_num)):
+#             self.units[i].compile()
+#
+#     def save(self):
+#         for i, unit in enumerate(range(self.units_num)):
+#             self.units[i].save(i)
+#
+#     def load(self):
+#         for i, unit in enumerate(range(self.units_num)):
+#             self.units[i].load(i)
+#
+#     def train(self):
+#         for i, unit in enumerate(range(self.units_num)):
+#             self.units[i].train()
+#
+#     def eval(self):
+#         for i, unit in enumerate(range(self.units_num)):
+#             self.units[i].eval()
+#
+#     def forward(self, x):
+#         outputs = []
+#         for i, unit in enumerate(range(self.units_num)):
+#             act, x = self.units[i].forward(x)
+#             outputs.append((act, x))
+#         return outputs
+#
+#     def anomaly(self):
+#         return float(self.units[-1].tm.anomaly) if self.units[-1].temporal else None
+#
+#     def reset(self):
+#         for i, unit in enumerate(range(self.units_num)):
+#             self.units[i].reset()
