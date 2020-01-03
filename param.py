@@ -2,14 +2,14 @@ import os
 
 # Arguments
 args = {
-    "INPUT_PATH": 'data/31',
-    "MODEL_PATH": '../saved_model',
+    "INPUT_PATH": '../reddots/',
+    "MODEL_PATH": './saved_model',
     "SAVED_SP": 'sp_region{}.pickle',
     "SAVED_TM": 'tm_region{}.pickle'
 }
 
 # I/O files
-input_path = os.path.abspath(args["INPUT_PATH"])
+input_dir = os.path.abspath(args["INPUT_PATH"])
 sp_model = os.path.join(args["MODEL_PATH"], args["SAVED_SP"])
 tm_model = os.path.join(args["MODEL_PATH"], args["SAVED_TM"])
 
