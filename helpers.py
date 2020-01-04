@@ -150,8 +150,8 @@ class OVRClassifier:
         return f1_score(*data_pair, average="macro"), confusion_matrix(*data_pair)
 
 class Learner:
-    def __init__(self, input_path, setting):
-        self.split_ratio = 0.7
+    def __init__(self, input_path, setting, split_ratio):
+        self.split_ratio = split_ratio
         self.input_path = input_path
         self.setting = setting
         self.sdr_length = setting["enc"]["size"]
