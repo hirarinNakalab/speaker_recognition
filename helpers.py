@@ -123,6 +123,7 @@ class OVRClassifier:
             results[th] = f1_score(ans, pred, average='macro')
 
         results_sorted = sort_dict_reverse(results)
+        print("best score for train data:", results_sorted[0])
         self.threshold = float(results_sorted[0][0])
 
     def predict(self, data):
@@ -144,12 +145,13 @@ class OVRClassifier:
         ans = [self.get_speaker_idx(data) for data in test_data]
         pred = [self.predict(data) for data in test_data]
         data_pair = (ans, pred)
-        target_names = [target for target in self.sp2idx.keys()]
-        return classification_report(*data_pair, target_names=target_names), f1_score(*data_pair, average="macro"), confusion_matrix(*data_pair)
+        # target_names = [target for target in self.sp2idx.keys()]
+        # report = classification_report(*data_pair, target_names=target_names)
+        return f1_score(*data_pair, average="macro"), confusion_matrix(*data_pair)
 
 class Learner:
     def __init__(self, input_path, setting):
-        self.split_ratio = 0.8
+        self.split_ratio = 0.7
         self.input_path = input_path
         self.setting = setting
         self.sdr_length = setting["enc"]["size"]
@@ -258,13 +260,14 @@ class Learner:
 
         all_train_data = self.get_all_data(self.train_dataset)
 
+        print("=====threshold optimization phase=====")
         self.clf.optimize(all_train_data)
 
     def evaluate(self):
         print("=====training phase=====")
 
         all_test_data = self.get_all_data(self.test_dataset)
-        report, f1, cm = self.clf.score(all_test_data)
+        f1, cm = self.clf.score(all_test_data)
         fmt = "testing data count: {}"
         print(fmt.format(len(all_test_data)), end='\n\n')
-        return report, f1, cm
+        return f1, cm
