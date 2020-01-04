@@ -2,7 +2,7 @@ from htm.encoders.rdse import RDSE, RDSE_Parameters
 from htm.bindings.sdr import SDR
 from collections import defaultdict
 from nnmnkwii.preprocessing import trim_zeros_frames
-from sklearn.metrics import f1_score, confusion_matrix
+from sklearn.metrics import f1_score, confusion_matrix, classification_report
 
 import os
 import random
@@ -119,8 +119,8 @@ class OVRClassifier:
                 anom_sorted = sort_dict(anoms)
                 is_over_th = [(val > self.threshold) for val in anoms.values()]
                 pred_sp = "unk" if all(is_over_th) else anom_sorted[0][0]
-                pred.append(pred_sp)
-            results[th] = f1_score(ans, pred)
+                pred.append(self.sp2idx[pred_sp])
+            results[th] = f1_score(ans, pred, average='macro')
 
         results_sorted = sort_dict_reverse(results)
         self.threshold = float(results_sorted[0][0])
@@ -144,7 +144,8 @@ class OVRClassifier:
         ans = [self.get_speaker_idx(data) for data in test_data]
         pred = [self.predict(data) for data in test_data]
         data_pair = (ans, pred)
-        return f1_score(*data_pair), confusion_matrix(*data_pair)
+        target_names = [target for target in self.sp2idx.keys()]
+        return classification_report(*data_pair, target_names=target_names), f1_score(*data_pair, average="macro"), confusion_matrix(*data_pair)
 
 class Learner:
     def __init__(self, input_path, setting):
@@ -263,7 +264,7 @@ class Learner:
         print("=====training phase=====")
 
         all_test_data = self.get_all_data(self.test_dataset)
-        f1, cm = self.clf.score(all_test_data)
+        report, f1, cm = self.clf.score(all_test_data)
         fmt = "testing data count: {}"
         print(fmt.format(len(all_test_data)), end='\n\n')
-        return f1, cm
+        return report, f1, cm

@@ -14,10 +14,10 @@ def main(args, default_parameters=param.default_parameters):
 
     print("training epoch: ", args.epoch)
     learner.fit(epoch=args.epoch)
-    f1, cm = learner.evaluate()
+    report, f1, cm = learner.evaluate()
 
-    print("f1 score: ", f1)
     print(cm)
+    print(report)
 
     return f1
 
