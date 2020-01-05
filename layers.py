@@ -90,6 +90,25 @@ class Layer:
             print(str(self.tm))
 
 
+class Unknown:
+    def __init__(self):
+        self.threshold = 1.0
+
+    def compile(self):
+        pass
+
+    def forward(self, encoding):
+        pass
+
+    def train(self):
+        pass
+
+    def eval(self):
+        pass
+
+    def anomaly(self):
+        return self.threshold
+
 # class Region:
 #     def __init__(self, *args):
 #         self.units = [arg for arg in args if isinstance(arg, Layer)]

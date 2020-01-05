@@ -11,7 +11,7 @@ import soundfile as sf
 import numpy as np
 import pyworld as pw
 
-from layers import Layer
+from layers import Layer, Unknown
 
 
 def get_wavfile_list(path):
@@ -85,9 +85,10 @@ class Experiment:
         return np.mean(anomaly)
 
 class OVRClassifier:
-    def __init__(self, models, sp2idx, experiment):
+    def __init__(self, models, sp2idx, experiment, unknown):
         self.threshold = 0
         self.models = models
+        self.unknown = unknown
         self.sp2idx = sp2idx
         self.exp = experiment
 
@@ -111,14 +112,13 @@ class OVRClassifier:
 
         results = defaultdict(float)
         for th in sorted(anom_patterns, reverse=True):
-            self.threshold = th
             ans = [self.get_speaker_idx(data) for data in train_data]
             pred = []
             for data in train_data:
                 anoms = all_anoms[data]
+                anoms[self.unknown] = th
                 anom_sorted = sort_dict(anoms)
-                is_over_th = [(val > self.threshold) for val in anoms.values()]
-                pred_sp = "unk" if all(is_over_th) else anom_sorted[0][0]
+                pred_sp = anom_sorted[0][0]
                 pred.append(self.sp2idx[pred_sp])
             results[th] = f1_score(ans, pred, average='macro')
 
@@ -129,33 +129,33 @@ class OVRClassifier:
     def predict(self, data):
         anomalies = {}
         for speaker in self.sp2idx.keys():
-            if speaker == "unk":
-                continue
             model = self.models[speaker]
             model.eval()
             anomalies[speaker] = self.exp.execute(data, model)
         anom_sorted = sort_dict(anomalies)
-
-        is_over_th = [(val > self.threshold) for val in anomalies.values()]
-        pred_sp = "unk" if all(is_over_th) else anom_sorted[0][0]
-
+        pred_sp = anom_sorted[0][0]
         return self.sp2idx[pred_sp]
 
     def score(self, test_data):
         ans = [self.get_speaker_idx(data) for data in test_data]
         pred = [self.predict(data) for data in test_data]
         data_pair = (ans, pred)
-        # target_names = [target for target in self.sp2idx.keys()]
-        # report = classification_report(*data_pair, target_names=target_names)
-        return f1_score(*data_pair, average="macro"), confusion_matrix(*data_pair)
+
+        f1 = f1_score(*data_pair, average="macro")
+        cm = confusion_matrix(*data_pair)
+        target_names = ["unknown" if target == self.unknown
+                        else target for target in self.sp2idx.keys()]
+        report = classification_report(*data_pair, target_names=target_names)
+        return f1, cm, report
 
 class Learner:
-    def __init__(self, input_path, setting, split_ratio):
+    def __init__(self, input_path, setting, split_ratio, unknown):
         self.split_ratio = split_ratio
         self.input_path = input_path
         self.setting = setting
         self.sdr_length = setting["enc"]["size"]
         self.n_features = setting["enc"]["featureCount"]
+        self.unknown = unknown
         self.sp2idx = self.speakers_to_idx()
         self.idx2sp = self.idx_to_speakers()
         self.encoder = self.create_encoder()
@@ -165,7 +165,10 @@ class Learner:
         self.clf = self.create_clf()
 
     def speakers_to_idx(self):
-        speakers = ["unk"] + os.listdir(self.input_path)
+        speakers = os.listdir(self.input_path)
+        speakers = [speaker for speaker in speakers
+                    if not speaker == self.unknown]
+        speakers = [self.unknown] + speakers
         return {k: v for v, k in enumerate(speakers)}
 
     def idx_to_speakers(self):
@@ -176,8 +179,6 @@ class Learner:
 
         speakers_data = defaultdict(list)
         for speaker in self.sp2idx.keys():
-            if speaker == "unk":
-                continue
             speakers_data[speaker] = [wav for wav in wav_files if speaker in wav]
 
         sorted_spdata = sort_dict_by_len(speakers_data)
@@ -188,8 +189,6 @@ class Learner:
         test_dataset = defaultdict(list)
 
         for speaker in self.sp2idx.keys():
-            if speaker == "unk":
-                continue
             data = speakers_data[speaker]
             train_dataset[speaker] = data[:split_idx]
             test_dataset[speaker] = data[split_idx:min_length]
@@ -223,34 +222,36 @@ class Learner:
         return model
 
     def create_clf(self):
-        return OVRClassifier(self.models, self.sp2idx, self.experiment)
+        return OVRClassifier(self.models, self.sp2idx, self.experiment, self.unknown)
 
     def create_experiment(self):
         return Experiment(self.encoder, self.sdr_length, self.n_features)
 
     def create_models(self):
-        return {speaker: self.create_model()
-                for speaker in self.sp2idx.keys() if not speaker == "unk"}
+        d = dict()
+        for speaker in self.sp2idx.keys():
+            if speaker == self.unknown:
+                d[speaker] = Unknown()
+            else:
+                d[speaker] = self.create_model()
+        return d
 
     def get_all_data(self, dataset):
         return [data
                 for speaker in self.sp2idx
                 for data in dataset[speaker]]
 
-    def fit(self, epoch):
+    def fit(self, epochs):
         print("=====training phase=====")
 
         for speaker in self.sp2idx.keys():
-            if speaker == "unk":
-                continue
-
             print("=" * 30 + "model of ", speaker, "=" * 30 + "\n")
             model = self.models[speaker]
             model.train()
 
             train_data = self.train_dataset[speaker]
 
-            for epoch in range(epoch):
+            for epoch in range(epochs):
                 print("epoch {}".format(epoch))
                 for data in random.sample(train_data, len(train_data)):
                     self.experiment.execute(data, model)
@@ -267,7 +268,7 @@ class Learner:
         print("=====training phase=====")
 
         all_test_data = self.get_all_data(self.test_dataset)
-        f1, cm = self.clf.score(all_test_data)
+        f1, cm, report = self.clf.score(all_test_data)
         fmt = "testing data count: {}"
         print(fmt.format(len(all_test_data)), end='\n\n')
-        return f1, cm
+        return f1, cm, report
