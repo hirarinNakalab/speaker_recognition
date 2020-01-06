@@ -124,7 +124,7 @@ class OVRClassifier:
 
         results_sorted = sort_dict_reverse(results)
         print("best score for train data:", results_sorted[0])
-        self.threshold = float(results_sorted[0][0])
+        self.models[self.unknown].threshold = float(results_sorted[0][0])
 
     def predict(self, data):
         anomalies = {}
@@ -271,4 +271,5 @@ class Learner:
         f1, cm, report = self.clf.score(all_test_data)
         fmt = "testing data count: {}"
         print(fmt.format(len(all_test_data)), end='\n\n')
+        print("test threshold: ", self.models[self.unknown].threshold)
         return f1, cm, report
