@@ -30,7 +30,7 @@ if __name__ == '__main__':
                         help='Number of epoch to learn, defaults to 5 epochs.')
     parser.add_argument('-s', '--speech', type=int, default=31,
                         help='The number of speech to learn, defaults to 31')
-    parser.add_argument('-r', '--ratio', type=float, default=0.8,
+    parser.add_argument('-r', '--ratio', type=float, default=0.6,
                         help='The ratio of train/test split, defaults to 0.8')
     parser.add_argument('-u', '--unknown', type=str, default="m0006",
                         help='The ratio of train/test split, defaults to m0006')
