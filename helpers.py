@@ -12,6 +12,7 @@ import numpy as np
 import pyworld as pw
 
 from layers import Layer, Unknown
+from viz_util import plot_anomalies
 
 
 def get_wavfile_list(path):
@@ -81,8 +82,9 @@ class Experiment:
             model.forward(self.get_encoding(feature))
             anomaly.append(model.anomaly())
 
-        print("average anomaly score:", np.mean(anomaly), end='\n\n')
-        return np.mean(anomaly)
+        score = np.sum(np.array(anomaly) > 0.9)
+        print("anomaly score:", score, end='\n\n')
+        return score
 
 class OVRClassifier:
     def __init__(self, models, sp2idx, experiment, unknown):
@@ -168,7 +170,7 @@ class Learner:
         speakers = os.listdir(self.input_path)
         speakers = [speaker for speaker in speakers
                     if not speaker == self.unknown]
-        speakers = [self.unknown] + speakers
+        # speakers = [self.unknown] + speakers
         return {k: v for v, k in enumerate(speakers)}
 
     def idx_to_speakers(self):
@@ -259,17 +261,17 @@ class Learner:
             fmt = "training data count: {}"
             print(fmt.format(len(train_data)), end='\n\n')
 
-        all_train_data = self.get_all_data(self.train_dataset)
+        # all_train_data = self.get_all_data(self.train_dataset)
 
-        print("=====threshold optimization phase=====")
-        self.clf.optimize(all_train_data)
+        # print("=====threshold optimization phase=====")
+        # self.clf.optimize(all_train_data)
 
     def evaluate(self):
-        print("=====training phase=====")
+        print("=====testing phase=====")
 
         all_test_data = self.get_all_data(self.test_dataset)
         f1, cm, report = self.clf.score(all_test_data)
         fmt = "testing data count: {}"
         print(fmt.format(len(all_test_data)), end='\n\n')
-        print("test threshold: ", self.models[self.unknown].threshold)
+        # print("test threshold: ", self.models[self.unknown].threshold)
         return f1, cm, report

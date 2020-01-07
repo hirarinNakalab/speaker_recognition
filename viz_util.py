@@ -8,6 +8,12 @@ import matplotlib.animation as anime
 
 import param
 
+def plot_anomalies(anomaly):
+    fig, ax = plt.subplots(1, 1)
+    ax.plot(anomaly)
+    plt.pause(0.001)
+    plt.close()
+
 
 def plot_features(waveform, features, filename, setting):
     fig, axes = plt.subplots(setting["enc"]["featureCount"]+1, 1)

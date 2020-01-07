@@ -27,7 +27,7 @@ class Layer:
             synPermActiveInc=spParams['synPermActiveInc'],
             synPermConnected=spParams['synPermConnected'],
             boostStrength=spParams['boostStrength'],
-            wrapAround=spParams['wrapAround'],
+            wrapAround=True,
         )
         if self.temporal:
             tmParams = self.setting["tm"]

@@ -1,7 +1,7 @@
 import os
 import argparse
 
-import htm.optimization.ae as auto_exp
+import ae as auto_exp
 import htm.optimization.optimizers as optimizers
 from htm.optimization.swarming import ParticleSwarmOptimization
 
