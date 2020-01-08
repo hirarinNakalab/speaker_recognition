@@ -25,6 +25,7 @@ default_parameters = {
         'columnCount': 1638,
         'localAreaDensity': 0.04395604395604396,
         'potentialPct': 0.85,
+        'potentialRadius': 1638,
         'synPermActiveInc': 0.04,
         'synPermConnected': 0.13999999999999999,
         'synPermInactiveDec': 0.006},
