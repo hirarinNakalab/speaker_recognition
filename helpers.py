@@ -155,8 +155,8 @@ class Learner:
         self.split_ratio = split_ratio
         self.input_path = input_path
         self.setting = setting
-        self.sdr_length = setting["enc"]["size"]
-        self.n_features = setting["enc"]["featureCount"]
+        self.sdr_length = setting("enc").size
+        self.n_features = setting("enc").featureCount
         self.unknown = unknown
         self.sp2idx = self.speakers_to_idx()
         self.idx2sp = self.idx_to_speakers()
@@ -199,21 +199,21 @@ class Learner:
 
     def create_encoder(self):
         print("creating encoder...")
-        print(self.setting["enc"])
+        print(self.setting("enc"))
         scalarEncoderParams = RDSE_Parameters()
-        scalarEncoderParams.size = self.setting["enc"]["size"]
-        scalarEncoderParams.sparsity = self.setting["enc"]["sparsity"]
-        scalarEncoderParams.resolution = self.setting["enc"]["resolution"]
+        scalarEncoderParams.size = self.setting("enc").size
+        scalarEncoderParams.sparsity = self.setting("enc").sparsity
+        scalarEncoderParams.resolution = self.setting("enc").resolution
         scalarEncoder = RDSE(scalarEncoderParams)
         print()
         return scalarEncoder
 
     def create_model(self):
         print("creating model...")
-        print(self.setting["sp"])
-        print(self.setting["tm"])
-        input_size = self.setting["enc"]["size"] * self.setting["enc"]["featureCount"]
-        output_size = self.setting["sp"]["columnCount"]
+        print(self.setting("sp"))
+        print(self.setting("tm"))
+        input_size = self.setting("enc").size * self.setting("enc").featureCount
+        output_size = self.setting("sp").columnCount
         model = Layer(
             din=(input_size,),
             dout=(output_size,),

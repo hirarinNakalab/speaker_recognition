@@ -1,3 +1,4 @@
+from attrdict import AttrDict
 from htm.bindings.algorithms import SpatialPooler
 from htm.bindings.algorithms import TemporalMemory
 from htm.bindings.sdr import SDR
@@ -10,40 +11,40 @@ class Layer:
         self.output_shape = dout
         self.temporal = temporal
         self.learn = True
-        self.setting = dict(setting)
+        self.setting = AttrDict(setting)
         self.sp = SpatialPooler()
         self.tm = TemporalMemory() if temporal else None
 
     def compile(self):
-        spParams = self.setting["sp"]
+        spParams = self.setting("sp")
         self.sp = SpatialPooler(
             inputDimensions=self.input_shape,
             columnDimensions=self.output_shape,
-            potentialPct=spParams['potentialPct'],
-            potentialRadius=spParams['potentialRadius'],
+            potentialPct=spParams.potentialPct,
+            potentialRadius=spParams.potentialRadius,
             globalInhibition=True if len(self.output_shape) == 1 else False,
-            localAreaDensity=spParams['localAreaDensity'],
-            synPermInactiveDec=spParams['synPermInactiveDec'],
-            synPermActiveInc=spParams['synPermActiveInc'],
-            synPermConnected=spParams['synPermConnected'],
-            boostStrength=spParams['boostStrength'],
+            localAreaDensity=spParams.localAreaDensity,
+            synPermInactiveDec=spParams.synPermInactiveDec,
+            synPermActiveInc=spParams.synPermActiveInc,
+            synPermConnected=spParams.synPermConnected,
+            boostStrength=spParams.boostStrength,
             wrapAround=True,
         )
         if self.temporal:
-            tmParams = self.setting["tm"]
+            tmParams = self.setting("tm")
             self.tm = TemporalMemory(
                 columnDimensions=self.output_shape,
-                cellsPerColumn=tmParams["cellsPerColumn"],
-                activationThreshold=tmParams["activationThreshold"],
-                initialPermanence=tmParams["initialPerm"],
-                connectedPermanence=spParams["synPermConnected"],
-                minThreshold=tmParams["minThreshold"],
-                maxNewSynapseCount=tmParams["newSynapseCount"],
-                permanenceIncrement=tmParams["permanenceInc"],
-                permanenceDecrement=tmParams["permanenceDec"],
+                cellsPerColumn=tmParams.cellsPerColumn,
+                activationThreshold=tmParams.activationThreshold,
+                initialPermanence=tmParams.initialPerm,
+                connectedPermanence=spParams.synPermConnected,
+                minThreshold=tmParams.minThreshold,
+                maxNewSynapseCount=tmParams.newSynapseCount,
+                permanenceIncrement=tmParams.permanenceInc,
+                permanenceDecrement=tmParams.permanenceDec,
                 predictedSegmentDecrement=0.0,
-                maxSegmentsPerCell=tmParams["maxSegmentsPerCell"],
-                maxSynapsesPerSegment=tmParams["maxSynapsesPerSegment"]
+                maxSegmentsPerCell=tmParams.maxSegmentsPerCell,
+                maxSynapsesPerSegment=tmParams.maxSynapsesPerSegment
             )
 
     def forward(self, encoding):

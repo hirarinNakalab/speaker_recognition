@@ -8,11 +8,13 @@ import param
 
 
 def main(parameters=default_parameters, argv=None, verbose=True):
+    parameters = AttrDict(parameters)
     args = AttrDict(dict(speech="31", ratio=0.8, unknown="f0001", epochs=1))
+
     input_path = os.path.join(param.input_dir, str(args.speech))
     learner = Learner(
         input_path=input_path,
-        setting=default_parameters,
+        setting=parameters,
         split_ratio=args.ratio,
         unknown=args.unknown
     )
