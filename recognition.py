@@ -1,3 +1,4 @@
+from attrdict import AttrDict
 import os
 
 from helpers import Learner
@@ -7,17 +8,17 @@ import param
 
 
 def main(parameters=default_parameters, argv=None, verbose=True):
-    args = dict(speech="31", ratio=0.8, unknown="f0001", epochs=1)
-    input_path = os.path.join(param.input_dir, str(args["speech"]))
+    args = AttrDict(dict(speech="31", ratio=0.8, unknown="f0001", epochs=1))
+    input_path = os.path.join(param.input_dir, str(args.speech))
     learner = Learner(
         input_path=input_path,
         setting=default_parameters,
-        split_ratio=args["ratio"],
-        unknown=args["unknown"]
+        split_ratio=args.ratio,
+        unknown=args.unknown
     )
 
-    print("training epochs: ", args["epochs"])
-    learner.fit(epochs=args["epochs"])
+    print("training epochs: ", args.epochs)
+    learner.fit(epochs=args.epochs)
     f1, cm, report = learner.evaluate()
 
     print(report)
