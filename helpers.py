@@ -80,6 +80,7 @@ class Experiment:
         for feature in features:
             model.forward(self.get_encoding(feature))
             anomaly.append(model.anomaly())
+        model.reset()
 
         score = np.sum(np.array(anomaly) > 0.9)
         print("anomaly score:", score, end='\n\n')
