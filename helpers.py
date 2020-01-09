@@ -12,7 +12,6 @@ import numpy as np
 import pyworld as pw
 
 from layers import Layer, Unknown
-from viz_util import plot_anomalies
 
 
 def get_wavfile_list(path):
