@@ -14,7 +14,6 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     learner = Learner(
         input_path=input_path,
         setting=parameters,
-        split_ratio=parameters.ratio,
         unknown="f0001"
     )
 

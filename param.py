@@ -15,10 +15,10 @@ tm_model = os.path.join(args["MODEL_PATH"], args["SAVED_TM"])
 
 # Model Parameters
 default_parameters = {
-    'ratio': 0.8,
+    'ratio': 0.5,
     'epochs': 1,
     'enc': {'featureCount': 16,
-         'resolution': 1.0001548182411786,
+         'resolution': 0.000149999993,
          'size': 85,
          'sparsity': 0.017065233011050153},
     'sp': {'boostStrength': 2.672350211791666,

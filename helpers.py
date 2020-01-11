@@ -12,6 +12,8 @@ import numpy as np
 import pyworld as pw
 
 from layers import Layer, Unknown
+from viz_util import plot_features, plot_input_data
+import param
 
 
 def get_wavfile_list(path):
@@ -70,19 +72,25 @@ class Experiment:
         x = normalize(x)
 
         f0, mcep, bap = get_features(x, fs)
+
         features = np.concatenate([
             f0.reshape(-1, 1),
             mcep[:, :self.n_features - 2],
             -bap
         ], axis=1)
 
+        # plot_features(x, features, data, param.default_parameters)
+
         anomaly = []
         for feature in features:
-            model.forward(self.get_encoding(feature))
+            inp = self.get_encoding(feature)
+            # plot_input_data(inp)
+            act, pred = model.forward(inp)
             anomaly.append(model.anomaly())
         model.reset()
 
-        score = np.sum(np.array(anomaly)==1.0) / len(anomaly)
+        # score = np.sum(np.array(anomaly) == 1.0) / len(anomaly)
+        score = np.mean(anomaly)
         print("anomaly score:", score, end='\n\n')
         return score
 
@@ -151,10 +159,10 @@ class OVRClassifier:
         return f1, cm, report
 
 class Learner:
-    def __init__(self, input_path, setting, split_ratio, unknown):
-        self.split_ratio = split_ratio
-        self.input_path = input_path
+    def __init__(self, input_path, setting, unknown):
         self.setting = setting
+        self.split_ratio = self.setting.ratio
+        self.input_path = input_path
         self.sdr_length = setting("enc").size
         self.n_features = setting("enc").featureCount
         self.unknown = unknown

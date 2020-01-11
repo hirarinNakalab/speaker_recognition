@@ -4,6 +4,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as anime
 
+import param
+
 
 def plot_anomalies(anomaly):
     fig, ax = plt.subplots(1, 1)
@@ -22,6 +24,11 @@ def plot_features(waveform, features, filename, setting):
 
     filename = os.path.basename(filename).replace(".wav", "") + ".png"
     plt.savefig(filename)
+
+def plot_input_data(inp):
+    setting = param.default_parameters
+    plt.imshow(inp.dense.reshape(setting["enc"]["featureCount"], -1))
+    plt.pause(0.1)
 
 def write_gif_file(features, features_iter, filename):
     fig = plt.figure()
