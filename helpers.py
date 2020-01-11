@@ -82,7 +82,7 @@ class Experiment:
             anomaly.append(model.anomaly())
         model.reset()
 
-        score = np.sum(np.array(anomaly) > 0.9)
+        score = np.sum(np.array(anomaly)==1.0) / len(anomaly)
         print("anomaly score:", score, end='\n\n')
         return score
 
