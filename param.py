@@ -15,8 +15,8 @@ tm_model = os.path.join(args["MODEL_PATH"], args["SAVED_TM"])
 
 # Model Parameters
 default_parameters = {
-    'ratio': 0.5,
-    'epochs': 1,
+    'ratio': 0.4,
+    'epochs': 5,
     'enc': {'featureCount': 16,
          'resolution': 0.000149999993,
          'size': 85,
