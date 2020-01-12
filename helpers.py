@@ -87,10 +87,9 @@ class Experiment:
             # plot_input_data(inp)
             act, pred = model.forward(inp)
             anomaly.append(model.anomaly())
+        # plot_anomalies(anomaly)
         model.reset()
-        plot_anomalies(anomaly)
 
-        # score = np.sum(np.array(anomaly) == 1.0) / len(anomaly)
         score = np.mean(anomaly)
         print("anomaly score:", score, end='\n\n')
         return score

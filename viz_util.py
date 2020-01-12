@@ -23,8 +23,9 @@ def counter(func):
 @counter
 def plot_anomalies(anomaly, *, ax):
     ax.cla()
+    ax.set_ylim(-0.02, 1.02)
     ax.plot(anomaly)
-    plt.pause(.4)
+    plt.pause(.0001)
 
 def plot_features(waveform, features, filename, setting):
     fig, axes = plt.subplots(setting["enc"]["featureCount"]+1, 1)
