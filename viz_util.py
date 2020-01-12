@@ -1,4 +1,5 @@
 import os
+import functools
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,12 +7,24 @@ import matplotlib.animation as anime
 
 import param
 
+def counter(func):
+    is_first = True
+    ax = None
+    @functools.wraps(func)
+    def counted(*args):
+        nonlocal is_first, ax
+        if is_first:
+            is_first = False
+            fig, ax = plt.subplots(1, 1)
+        result = func(*args, ax=ax)
+        return result
+    return counted
 
-def plot_anomalies(anomaly):
-    fig, ax = plt.subplots(1, 1)
+@counter
+def plot_anomalies(anomaly, *, ax):
+    ax.cla()
     ax.plot(anomaly)
-    plt.pause(0.001)
-    plt.close()
+    plt.pause(.4)
 
 def plot_features(waveform, features, filename, setting):
     fig, axes = plt.subplots(setting["enc"]["featureCount"]+1, 1)
@@ -21,9 +34,6 @@ def plot_features(waveform, features, filename, setting):
     for i, feature in enumerate(features.T, start=1):
         axes[i].cla()
         axes[i].plot(feature)
-
-    filename = os.path.basename(filename).replace(".wav", "") + ".png"
-    plt.savefig(filename)
 
 def plot_input_data(inp):
     setting = param.default_parameters

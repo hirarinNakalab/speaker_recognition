@@ -12,7 +12,7 @@ import numpy as np
 import pyworld as pw
 
 from layers import Layer, Unknown
-from viz_util import plot_features, plot_input_data
+from viz_util import plot_features, plot_input_data, plot_anomalies
 import param
 
 
@@ -88,6 +88,7 @@ class Experiment:
             act, pred = model.forward(inp)
             anomaly.append(model.anomaly())
         model.reset()
+        plot_anomalies(anomaly)
 
         # score = np.sum(np.array(anomaly) == 1.0) / len(anomaly)
         score = np.mean(anomaly)
