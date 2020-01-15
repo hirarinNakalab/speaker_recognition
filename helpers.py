@@ -8,11 +8,13 @@ import os
 import random
 import pysptk
 import soundfile as sf
+import torchaudio as ta
 import numpy as np
 import pyworld as pw
 
 from layers import Layer, Unknown
 from viz_util import plot_features, plot_input_data, plot_anomalies
+from viz_util import plot_waveform, plot_specgram
 import param
 
 
@@ -36,12 +38,16 @@ def get_features(x, fs):
     bap = pw.code_aperiodicity(ap, fs)
     return f0, mcep, bap
 
-def normalize(data):
+def peak_normalize(data):
     data = data.astype(np.float64)
     amp = max(np.abs(np.max(data)), np.abs(np.min(data)))
     data = data / amp
     data.clip(-1, 1)
     return data
+
+def normalize(tensor):
+    tensor_minus_mean = tensor - tensor.mean()
+    return tensor_minus_mean / tensor_minus_mean.abs().max()
 
 def sort_dict(dict):
     return sorted(dict.items(), key=lambda x: x[1])
@@ -58,6 +64,7 @@ class Experiment:
         self.encoder = encoder
         self.sdr_length = sdr_length
         self.n_features = n_features
+        self.mel = ta.transforms.MelSpectrogram(n_mels=self.n_features)
 
     def get_encoding(self, feature):
         encodings = [self.encoder.encode(feat) for feat in feature]
@@ -65,24 +72,33 @@ class Experiment:
         encoding.concatenate(encodings)
         return encoding
 
-    def execute(self, data, model):
-        print("wavefile:{}".format(os.path.basename(data)))
+    def get_mel_sp(self, data):
+        x, fs = ta.load(data)
+        # plot_waveform(x.detach().numpy().reshape(-1))
+        features = self.mel(normalize(x)).log2()
+        features = features.detach().numpy().astype(np.float32)
+        features = features.reshape(features.shape[1], -1)
+        # plot_specgram(features)
+        return features
 
+    def get_world_features(self, data):
         x, fs = sf.read(data)
-        x = normalize(x)
-
         f0, mcep, bap = get_features(x, fs)
-
         features = np.concatenate([
             f0.reshape(-1, 1),
             mcep[:, :self.n_features - 2],
             -bap
         ], axis=1)
+        plot_features(x, features, data, param.default_parameters)
+        return features
 
-        # plot_features(x, features, data, param.default_parameters)
+    def execute(self, data, model):
+        print("wavefile:{}".format(os.path.basename(data)))
+
+        features = self.get_mel_sp(data)
 
         anomaly = []
-        for feature in features:
+        for feature in features.T:
             inp = self.get_encoding(feature)
             # plot_input_data(inp)
             act, pred = model.forward(inp)

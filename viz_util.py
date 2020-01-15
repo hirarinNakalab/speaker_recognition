@@ -27,6 +27,10 @@ def plot_anomalies(anomaly, *, ax):
     ax.plot(anomaly)
     plt.pause(.0001)
 
+def plot_waveform(wave):
+    plt.plot(wave)
+    plt.pause(1)
+
 def plot_features(waveform, features, filename, setting):
     fig, axes = plt.subplots(setting["enc"]["featureCount"]+1, 1)
 
@@ -40,6 +44,10 @@ def plot_input_data(inp):
     setting = param.default_parameters
     plt.imshow(inp.dense.reshape(setting["enc"]["featureCount"], -1))
     plt.pause(0.1)
+
+def plot_specgram(spec):
+    plt.imshow(spec)
+    plt.pause(0.01)
 
 def write_gif_file(features, features_iter, filename):
     fig = plt.figure()
