@@ -194,7 +194,7 @@ class Learner:
         speakers = os.listdir(self.input_path)
         speakers = [speaker for speaker in speakers
                     if not speaker == self.unknown]
-        # speakers = [self.unknown] + speakers
+        speakers = [self.unknown] + speakers
         return {k: v for v, k in enumerate(speakers)}
 
     def idx_to_speakers(self):
@@ -285,10 +285,10 @@ class Learner:
             fmt = "training data count: {}"
             print(fmt.format(len(train_data)), end='\n\n')
 
-        # all_train_data = self.get_all_data(self.train_dataset)
+        all_train_data = self.get_all_data(self.train_dataset)
 
-        # print("=====threshold optimization phase=====")
-        # self.clf.optimize(all_train_data)
+        print("=====threshold optimization phase=====")
+        self.clf.optimize(all_train_data)
 
     def evaluate(self):
         print("=====testing phase=====")
@@ -297,5 +297,5 @@ class Learner:
         f1, cm, report = self.clf.score(all_test_data)
         fmt = "testing data count: {}"
         print(fmt.format(len(all_test_data)), end='\n\n')
-        # print("test threshold: ", self.models[self.unknown].threshold)
+        print("test threshold: ", self.models[self.unknown].threshold)
         return f1, cm, report
