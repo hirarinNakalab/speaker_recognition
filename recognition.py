@@ -14,13 +14,14 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     learner = Learner(
         input_path=input_path,
         setting=parameters,
-        unknown="f0001",
+        unknown="m0009",
         save_threshold=0.8
     )
 
     print("training epochs: ", parameters.epochs)
     learner.fit(epochs=parameters.epochs)
     f1, cm, report = learner.evaluate()
+    learner.save()
 
     print(report)
     print(cm)

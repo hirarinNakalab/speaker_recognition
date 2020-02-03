@@ -307,11 +307,11 @@ class Learner:
         if self.score < self.save_threshold:
             return
 
-        dirname = datetime.now().isoformat() + str(self.score)
+        dirname = '-'.join([datetime.now().isoformat(), str(self.score)])
         if os.path.exists(dirname):
             return
-
         os.mkdir(dirname)
+
         for speaker, model in self.models.items():
             filename = os.path.join(dirname, speaker)
             model.save(filename)

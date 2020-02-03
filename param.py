@@ -1,17 +1,9 @@
 import os
 
-# Arguments
-args = {
-    "INPUT_PATH": '../reddots/',
-    "MODEL_PATH": './saved_model',
-    "SAVED_SP": 'sp.pickle',
-    "SAVED_TM": 'tm.pickle'
-}
-
 # I/O files
-input_dir = os.path.abspath(args["INPUT_PATH"])
-sp_model = os.path.join(args["MODEL_PATH"], args["SAVED_SP"])
-tm_model = os.path.join(args["MODEL_PATH"], args["SAVED_TM"])
+input_dir = os.path.abspath('../reddots/')
+sp_model = '{}_sp.pickle'
+tm_model = '{}_tm.pickle'
 
 # Model Parameters
 default_parameters = {'enc': {'featureCount': 25,
@@ -33,7 +25,7 @@ default_parameters = {'enc': {'featureCount': 25,
         'initialPerm': 0.20840260761920143,
         'maxSegmentsPerCell': 149,
         'maxSynapsesPerSegment': 54,
-        'minThreshold': 12,
+        'minThreshold': 8,
         'newSynapseCount': 20,
         'permanenceDec': 0.07044642988973361,
         'permanenceInc': 0.08306790785000162}}
