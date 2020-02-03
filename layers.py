@@ -3,6 +3,7 @@ from htm.bindings.algorithms import SpatialPooler
 from htm.bindings.algorithms import TemporalMemory
 from htm.bindings.sdr import SDR
 
+import os
 import param
 
 class Layer:
@@ -74,20 +75,21 @@ class Layer:
         if self.temporal:
             self.tm.reset()
 
-    def save(self, i):
+    def save(self, path):
         print('Saving Model...')
         print(str(self.sp))
-        self.sp.saveToFile(param.sp_model.format(i))
+
+        self.sp.saveToFile(path + param.sp_model)
         if self.temporal:
             print(str(self.tm))
-            self.tm.saveToFile(param.tm_model.format(i))
+            self.tm.saveToFile(path + param.tm_model)
 
-    def load(self, i):
+    def load(self, path):
         print('Loading Model...')
-        self.sp.loadFromFile(param.sp_model.format(i))
+        self.sp.loadFromFile(path + param.sp_model)
         print(str(self.sp))
         if self.temporal:
-            self.tm.loadFromFile(param.tm_model.format(i))
+            self.tm.loadFromFile(path + param.tm_model)
             print(str(self.tm))
 
 

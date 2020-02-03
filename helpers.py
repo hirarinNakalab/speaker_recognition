@@ -4,6 +4,7 @@ from collections import defaultdict
 from nnmnkwii.preprocessing import trim_zeros_frames
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
 
+from datetime import datetime
 import os
 import random
 import pysptk
@@ -175,12 +176,10 @@ class OVRClassifier:
         return f1, cm, report
 
 class Learner:
-    def __init__(self, input_path, setting, unknown):
+    def __init__(self, input_path, setting, unknown, save_threshold):
         self.setting = setting
         self.split_ratio = self.setting.ratio
         self.input_path = input_path
-        self.sdr_length = setting("enc").size
-        self.n_features = setting("enc").featureCount
         self.unknown = unknown
         self.sp2idx = self.speakers_to_idx()
         self.idx2sp = self.idx_to_speakers()
@@ -189,12 +188,14 @@ class Learner:
         self.train_dataset, self.test_dataset = self.create_dataset()
         self.models = self.create_models()
         self.clf = self.create_clf()
+        self.score = 0.0
+        self.save_threshold = save_threshold
 
     def speakers_to_idx(self):
         speakers = os.listdir(self.input_path)
         speakers = [speaker for speaker in speakers
                     if not speaker == self.unknown]
-        # speakers = [self.unknown] + speakers
+        speakers = [self.unknown] + speakers
         return {k: v for v, k in enumerate(speakers)}
 
     def idx_to_speakers(self):
@@ -251,7 +252,7 @@ class Learner:
         return OVRClassifier(self.models, self.sp2idx, self.experiment, self.unknown)
 
     def create_experiment(self):
-        return Experiment(self.encoder, self.sdr_length, self.n_features)
+        return Experiment(self.encoder, self.setting("enc").size, self.setting("enc").featureCount)
 
     def create_models(self):
         d = dict()
@@ -285,17 +286,32 @@ class Learner:
             fmt = "training data count: {}"
             print(fmt.format(len(train_data)), end='\n\n')
 
-        # all_train_data = self.get_all_data(self.train_dataset)
+        all_train_data = self.get_all_data(self.train_dataset)
 
-        # print("=====threshold optimization phase=====")
-        # self.clf.optimize(all_train_data)
+        print("=====threshold optimization phase=====")
+        self.clf.optimize(all_train_data)
 
     def evaluate(self):
         print("=====testing phase=====")
 
         all_test_data = self.get_all_data(self.test_dataset)
         f1, cm, report = self.clf.score(all_test_data)
+        self.score = f1
+
         fmt = "testing data count: {}"
         print(fmt.format(len(all_test_data)), end='\n\n')
-        # print("test threshold: ", self.models[self.unknown].threshold)
+        print("test threshold: ", self.models[self.unknown].threshold)
         return f1, cm, report
+
+    def save(self):
+        if self.score < self.save_threshold:
+            return
+
+        dirname = datetime.now().isoformat() + str(self.score)
+        if os.path.exists(dirname):
+            return
+
+        os.mkdir(dirname)
+        for speaker, model in self.models.items():
+            filename = os.path.join(dirname, speaker)
+            model.save(filename)
