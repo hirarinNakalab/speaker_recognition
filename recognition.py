@@ -15,7 +15,8 @@ def main(parameters=default_parameters, argv=None, verbose=True):
         input_path=input_path,
         setting=parameters,
         unknown="m0009",
-        save_threshold=0.8
+        save_threshold=0.8,
+        model_path="./"
     )
 
     print("training epochs: ", parameters.epochs)

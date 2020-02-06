@@ -6,6 +6,7 @@ from sklearn.metrics import f1_score, confusion_matrix, classification_report
 
 from datetime import datetime
 import os
+import json
 import random
 import pysptk
 import soundfile as sf
@@ -14,8 +15,7 @@ import numpy as np
 import pyworld as pw
 
 from layers import Layer, Unknown
-from viz_util import plot_features, plot_input_data, plot_anomalies
-from viz_util import plot_waveform, plot_specgram
+from viz_util import plot_features
 import param
 
 
@@ -176,8 +176,14 @@ class OVRClassifier:
         return f1, cm, report
 
 class Learner:
-    def __init__(self, input_path, setting, unknown, save_threshold):
-        self.setting = setting
+    def __init__(self, input_path, setting, unknown, save_threshold, model_path=None):
+        if model_path is not None:
+            self.model_path = model_path
+            with open('setting.json', 'r') as f:
+                self.setting = json.load(f)
+        else:
+            self.setting = setting
+
         self.split_ratio = self.setting.ratio
         self.input_path = input_path
         self.unknown = unknown
@@ -233,18 +239,23 @@ class Learner:
         print()
         return scalarEncoder
 
-    def create_model(self):
-        print("creating model...")
-        print(self.setting("sp"))
-        print(self.setting("tm"))
-        input_size = self.setting("enc").size * self.setting("enc").featureCount
-        output_size = self.setting("sp").columnCount
-        model = Layer(
-            din=(input_size,),
-            dout=(output_size,),
-            setting=self.setting
-        )
-        model.compile()
+    def create_model(self, speaker):
+        if self.model_path is not None:
+            model = Layer()
+            speaker_path =  os.path.join(self.model_path, speaker)
+            model.load(speaker_path)
+        else:
+            print("creating model...")
+            print(self.setting("sp"))
+            print(self.setting("tm"))
+            input_size = self.setting("enc").size * self.setting("enc").featureCount
+            output_size = self.setting("sp").columnCount
+            model = Layer(
+                din=(input_size,),
+                dout=(output_size,),
+                setting=self.setting
+            )
+            model.compile()
         print()
         return model
 
@@ -258,9 +269,10 @@ class Learner:
         d = dict()
         for speaker in self.sp2idx.keys():
             if speaker == self.unknown:
-                d[speaker] = Unknown()
+                threshold = 1.0 if self.model_path is None else self.setting["threshold"]
+                d[speaker] = Unknown(threshold)
             else:
-                d[speaker] = self.create_model()
+                d[speaker] = self.create_model(speaker)
         return d
 
     def get_all_data(self, dataset):
@@ -309,9 +321,14 @@ class Learner:
 
         dirname = '-'.join([datetime.now().isoformat(), str(self.score)])
         if os.path.exists(dirname):
+            print("model path already exits.")
             return
         os.mkdir(dirname)
 
         for speaker, model in self.models.items():
             filename = os.path.join(dirname, speaker)
             model.save(filename)
+
+        with open('setting.json', 'w') as f:
+            self.setting["threshold"] = self.models[self.unknown].threshold
+            json.dump(self.setting, f, indent=4)

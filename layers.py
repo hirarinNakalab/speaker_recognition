@@ -93,8 +93,8 @@ class Layer:
 
 
 class Unknown:
-    def __init__(self):
-        self.threshold = 1.0
+    def __init__(self, threshold=1.0):
+        self.threshold = threshold
 
     def compile(self):
         pass
