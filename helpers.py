@@ -3,6 +3,7 @@ from htm.bindings.sdr import SDR
 from collections import defaultdict
 from nnmnkwii.preprocessing import trim_zeros_frames
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
+from attrdict import AttrDict
 
 from datetime import datetime
 import os
@@ -177,10 +178,10 @@ class OVRClassifier:
 
 class Learner:
     def __init__(self, input_path, setting, unknown, save_threshold, model_path=None):
+        self.model_path = model_path
         if model_path is not None:
-            self.model_path = model_path
-            with open('setting.json', 'r') as f:
-                self.setting = json.load(f)
+            with open(os.path.join(model_path, 'setting.json'), 'r') as f:
+                self.setting = AttrDict(json.load(f))
         else:
             self.setting = setting
 
@@ -240,21 +241,19 @@ class Learner:
         return scalarEncoder
 
     def create_model(self, speaker):
+        input_size = self.setting("enc").size * self.setting("enc").featureCount
+        output_size = self.setting("sp").columnCount
+        model = Layer(
+            din=(input_size,),
+            dout=(output_size,),
+            setting=self.setting)
         if self.model_path is not None:
-            model = Layer()
             speaker_path =  os.path.join(self.model_path, speaker)
             model.load(speaker_path)
         else:
             print("creating model...")
             print(self.setting("sp"))
             print(self.setting("tm"))
-            input_size = self.setting("enc").size * self.setting("enc").featureCount
-            output_size = self.setting("sp").columnCount
-            model = Layer(
-                din=(input_size,),
-                dout=(output_size,),
-                setting=self.setting
-            )
             model.compile()
         print()
         return model
@@ -319,7 +318,7 @@ class Learner:
         if self.score < self.save_threshold:
             return
 
-        dirname = '-'.join([datetime.now().isoformat(), str(self.score)])
+        dirname = '-'.join([datetime.now().isoformat(), f"{self.score:.2f}"])
         if os.path.exists(dirname):
             print("model path already exits.")
             return
@@ -329,6 +328,6 @@ class Learner:
             filename = os.path.join(dirname, speaker)
             model.save(filename)
 
-        with open('setting.json', 'w') as f:
+        with open(os.path.join(dirname, 'setting.json'), 'w') as f:
             self.setting["threshold"] = self.models[self.unknown].threshold
             json.dump(self.setting, f, indent=4)

@@ -114,6 +114,9 @@ class Unknown:
     def reset(self):
         pass
 
+    def save(self, filename):
+        pass
+
 # class Region:
 #     def __init__(self, *args):
 #         self.units = [arg for arg in args if isinstance(arg, Layer)]

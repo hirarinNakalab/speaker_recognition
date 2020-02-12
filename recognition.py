@@ -14,15 +14,15 @@ def main(parameters=default_parameters, argv=None, verbose=True):
     learner = Learner(
         input_path=input_path,
         setting=parameters,
-        unknown="m0009",
-        save_threshold=0.8,
-        model_path="./"
+        unknown="m0005",
+        save_threshold=1e-3,
+        model_path="/home/sankyu/PycharmProjects/speaker_recognition/2020-02-12T14:00:53.590812-0.07"
     )
 
     print("training epochs: ", parameters.epochs)
-    learner.fit(epochs=parameters.epochs)
+    # learner.fit(epochs=parameters.epochs)
     f1, cm, report = learner.evaluate()
-    learner.save()
+    # learner.save()
 
     print(report)
     print(cm)
